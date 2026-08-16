@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 
@@ -13,6 +14,11 @@ export default function DashboardScreen() {
       <Text variant="bodyMedium" style={styles.role}>
         {user?.role === 'ADMIN' ? 'Administradora' : 'Vendedora'}
       </Text>
+
+      <Button mode="contained" onPress={() => router.push('/products')} style={styles.navButton}>
+        Produtos
+      </Button>
+
       <Button mode="outlined" onPress={logout} style={styles.button}>
         Sair
       </Button>
@@ -23,5 +29,6 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, gap: 8 },
   role: { opacity: 0.7, marginBottom: 24 },
-  button: { alignSelf: 'flex-start' },
+  navButton: { alignSelf: 'flex-start' },
+  button: { alignSelf: 'flex-start', marginTop: 24 },
 });
