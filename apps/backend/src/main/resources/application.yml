@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: alimentos
+  config:
+    import: "optional:file:.env[.properties]"
+  profiles:
+    default: dev
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-nao-use-em-producao-troque-isto-1234567890}
+    expiration-hours: 8
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:8081}
+  seed-admin:
+    enabled: false
+    name: ${SEED_ADMIN_NAME:Edmara Medeiros}
+    email: ${SEED_ADMIN_EMAIL:admin@edmaramedeiros.com.br}
+    password: ${SEED_ADMIN_PASSWORD:troque-esta-senha}
