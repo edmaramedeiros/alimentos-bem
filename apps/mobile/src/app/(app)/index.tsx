@@ -19,6 +19,10 @@ export default function DashboardScreen() {
         Produtos
       </Button>
 
+      <Button mode="contained" onPress={() => router.push('/customers')} style={styles.navButton}>
+        Clientes
+      </Button>
+
       <Button mode="outlined" onPress={logout} style={styles.button}>
         Sair
       </Button>

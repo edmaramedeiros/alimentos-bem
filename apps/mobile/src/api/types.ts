@@ -31,3 +31,19 @@ export type PriceHistoryEntry = {
   effectiveTo: string | null;
   createdByName: string;
 };
+
+export type Customer = {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  addressLine: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  notes: string | null;
+  active: boolean;
+  whatsappOptIn: boolean;
+  ownerVendedorId: string;
+  ownerVendedorName: string;
+};
