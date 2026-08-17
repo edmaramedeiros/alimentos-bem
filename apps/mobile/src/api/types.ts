@@ -72,6 +72,46 @@ export type SaleSummary = {
   itemCount: number;
 };
 
+export type CommissionStatus = 'PENDING' | 'EARNED';
+
 export type Sale = SaleSummary & {
+  commissionRateApplied: number | null;
+  commissionAmount: number | null;
+  commissionStatus: CommissionStatus;
   items: SaleItem[];
+};
+
+export type PaymentMethod = 'DINHEIRO' | 'PIX' | 'CARTAO' | 'TRANSFERENCIA' | 'OUTRO';
+
+export type Payment = {
+  id: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: PaymentMethod;
+  registeredByName: string;
+  notes: string | null;
+};
+
+export type CommissionRateEntry = {
+  id: string;
+  rate: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  createdByName: string;
+};
+
+export type CommissionEntry = {
+  saleId: string;
+  vendedorId: string;
+  vendedorName: string;
+  customerName: string;
+  saleDate: string;
+  totalAmount: number;
+  commissionRateApplied: number;
+  commissionAmount: number;
+};
+
+export type CommissionReport = {
+  totalEarned: number;
+  entries: CommissionEntry[];
 };

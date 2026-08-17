@@ -9,4 +9,8 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
     List<Sale> findByVendedor_IdOrderBySaleDateDesc(UUID vendedorId);
 
     List<Sale> findAllByOrderBySaleDateDesc();
+
+    List<Sale> findByCommissionStatusAndVendedor_IdOrderBySaleDateDesc(CommissionStatus status, UUID vendedorId);
+
+    List<Sale> findByCommissionStatusOrderBySaleDateDesc(CommissionStatus status);
 }

@@ -6,13 +6,14 @@ import { useAuthStore } from '@/store/auth-store';
 
 export default function DashboardScreen() {
   const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'ADMIN';
   const logout = useAuthStore((state) => state.logout);
 
   return (
     <View style={styles.container}>
       <Text variant="headlineSmall">Olá, {user?.name}</Text>
       <Text variant="bodyMedium" style={styles.role}>
-        {user?.role === 'ADMIN' ? 'Administradora' : 'Vendedora'}
+        {isAdmin ? 'Administradora' : 'Vendedora'}
       </Text>
 
       <Button mode="contained" onPress={() => router.push('/products')} style={styles.navButton}>
@@ -26,6 +27,16 @@ export default function DashboardScreen() {
       <Button mode="contained" onPress={() => router.push('/sales')} style={styles.navButton}>
         Vendas
       </Button>
+
+      <Button mode="contained" onPress={() => router.push('/commissions')} style={styles.navButton}>
+        Comissões
+      </Button>
+
+      {isAdmin && (
+        <Button mode="contained" onPress={() => router.push('/users')} style={styles.navButton}>
+          Usuários
+        </Button>
+      )}
 
       <Button mode="outlined" onPress={logout} style={styles.button}>
         Sair

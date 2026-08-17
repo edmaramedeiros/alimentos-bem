@@ -41,6 +41,16 @@ public class Sale extends BaseEntity {
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
+    @Column(name = "commission_rate_applied", precision = 5, scale = 2)
+    private BigDecimal commissionRateApplied;
+
+    @Column(name = "commission_amount", precision = 10, scale = 2)
+    private BigDecimal commissionAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "commission_status", nullable = false, length = 20)
+    private CommissionStatus commissionStatus = CommissionStatus.PENDING;
+
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("createdAt asc")
     private List<SaleItem> items = new ArrayList<>();
@@ -88,6 +98,30 @@ public class Sale extends BaseEntity {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public BigDecimal getCommissionRateApplied() {
+        return commissionRateApplied;
+    }
+
+    public void setCommissionRateApplied(BigDecimal commissionRateApplied) {
+        this.commissionRateApplied = commissionRateApplied;
+    }
+
+    public BigDecimal getCommissionAmount() {
+        return commissionAmount;
+    }
+
+    public void setCommissionAmount(BigDecimal commissionAmount) {
+        this.commissionAmount = commissionAmount;
+    }
+
+    public CommissionStatus getCommissionStatus() {
+        return commissionStatus;
+    }
+
+    public void setCommissionStatus(CommissionStatus commissionStatus) {
+        this.commissionStatus = commissionStatus;
     }
 
     public List<SaleItem> getItems() {

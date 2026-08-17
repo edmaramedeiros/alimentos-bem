@@ -1,5 +1,8 @@
 package com.edmara.alimentos.user;
 
+import com.edmara.alimentos.commission.CommissionService;
+import com.edmara.alimentos.commission.dto.CommissionRateEntryResponse;
+import com.edmara.alimentos.commission.dto.SetCommissionRateRequest;
 import com.edmara.alimentos.user.dto.CreateUserRequest;
 import com.edmara.alimentos.user.dto.ResetPasswordRequest;
 import com.edmara.alimentos.user.dto.UpdateUserRequest;
@@ -24,9 +27,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+    private final CommissionService commissionService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, CommissionService commissionService) {
         this.userService = userService;
+        this.commissionService = commissionService;
     }
 
     @GetMapping("/me")
@@ -38,6 +43,12 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> listAll() {
         return userService.listAll();
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse getById(@PathVariable UUID id) {
+        return userService.getById(id);
     }
 
     @PostMapping
@@ -57,5 +68,21 @@ public class UserController {
     public ResponseEntity<Void> resetPassword(@PathVariable UUID id, @Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(id, request);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/commission-rate-history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<CommissionRateEntryResponse> commissionRateHistory(@PathVariable UUID id) {
+        return commissionService.rateHistory(id);
+    }
+
+    @PostMapping("/{id}/commission-rate-history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public CommissionRateEntryResponse setCommissionRate(
+        @PathVariable UUID id,
+        @Valid @RequestBody SetCommissionRateRequest request,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return commissionService.setRate(id, request, currentUser);
     }
 }

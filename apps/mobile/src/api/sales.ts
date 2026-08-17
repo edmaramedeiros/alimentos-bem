@@ -1,5 +1,5 @@
 import { apiRequest } from '@/api/client';
-import type { Sale, SaleSummary } from '@/api/types';
+import type { Payment, PaymentMethod, Sale, SaleSummary } from '@/api/types';
 
 export function listSales(): Promise<SaleSummary[]> {
   return apiRequest<SaleSummary[]>('/api/sales');
@@ -25,4 +25,15 @@ export function createSale(input: CreateSaleInput): Promise<Sale> {
 
 export function cancelSale(id: string): Promise<Sale> {
   return apiRequest<Sale>(`/api/sales/${id}/cancel`, { method: 'POST' });
+}
+
+export function listPayments(saleId: string): Promise<Payment[]> {
+  return apiRequest<Payment[]>(`/api/sales/${saleId}/payments`);
+}
+
+export function registerPayment(saleId: string, paymentMethod: PaymentMethod, notes?: string): Promise<Sale> {
+  return apiRequest<Sale>(`/api/sales/${saleId}/payments`, {
+    method: 'POST',
+    body: { paymentMethod, notes },
+  });
 }

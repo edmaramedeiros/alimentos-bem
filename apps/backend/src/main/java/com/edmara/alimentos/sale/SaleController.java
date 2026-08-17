@@ -1,5 +1,7 @@
 package com.edmara.alimentos.sale;
 
+import com.edmara.alimentos.payment.dto.PaymentResponse;
+import com.edmara.alimentos.payment.dto.RegisterPaymentRequest;
 import com.edmara.alimentos.sale.dto.CreateSaleRequest;
 import com.edmara.alimentos.sale.dto.SaleResponse;
 import com.edmara.alimentos.sale.dto.SaleSummaryResponse;
@@ -48,5 +50,19 @@ public class SaleController {
     @PostMapping("/{id}/cancel")
     public SaleResponse cancel(@PathVariable UUID id, @AuthenticationPrincipal AppUser currentUser) {
         return saleService.cancel(id, currentUser);
+    }
+
+    @GetMapping("/{id}/payments")
+    public List<PaymentResponse> listPayments(@PathVariable UUID id, @AuthenticationPrincipal AppUser currentUser) {
+        return saleService.listPayments(id, currentUser);
+    }
+
+    @PostMapping("/{id}/payments")
+    public SaleResponse registerPayment(
+        @PathVariable UUID id,
+        @Valid @RequestBody RegisterPaymentRequest request,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return saleService.registerPayment(id, request, currentUser);
     }
 }

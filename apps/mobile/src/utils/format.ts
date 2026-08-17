@@ -16,3 +16,22 @@ export function saleStatusLabel(status: 'PENDING' | 'PAID' | 'CANCELLED'): strin
       return 'Cancelada';
   }
 }
+
+export function paymentMethodLabel(method: 'DINHEIRO' | 'PIX' | 'CARTAO' | 'TRANSFERENCIA' | 'OUTRO'): string {
+  switch (method) {
+    case 'DINHEIRO':
+      return 'Dinheiro';
+    case 'PIX':
+      return 'Pix';
+    case 'CARTAO':
+      return 'Cartão';
+    case 'TRANSFERENCIA':
+      return 'Transferência';
+    case 'OUTRO':
+      return 'Outro';
+  }
+}
+
+export function formatPercent(value: number): string {
+  return `${value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
+}

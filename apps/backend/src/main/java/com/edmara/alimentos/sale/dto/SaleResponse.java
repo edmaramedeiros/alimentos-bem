@@ -1,5 +1,6 @@
 package com.edmara.alimentos.sale.dto;
 
+import com.edmara.alimentos.sale.CommissionStatus;
 import com.edmara.alimentos.sale.Sale;
 import com.edmara.alimentos.sale.SaleStatus;
 import java.math.BigDecimal;
@@ -16,6 +17,9 @@ public record SaleResponse(
     Instant saleDate,
     SaleStatus status,
     BigDecimal totalAmount,
+    BigDecimal commissionRateApplied,
+    BigDecimal commissionAmount,
+    CommissionStatus commissionStatus,
     List<SaleItemResponse> items
 ) {
 
@@ -29,6 +33,9 @@ public record SaleResponse(
             sale.getSaleDate(),
             sale.getStatus(),
             sale.getTotalAmount(),
+            sale.getCommissionRateApplied(),
+            sale.getCommissionAmount(),
+            sale.getCommissionStatus(),
             sale.getItems().stream().map(SaleItemResponse::from).toList()
         );
     }

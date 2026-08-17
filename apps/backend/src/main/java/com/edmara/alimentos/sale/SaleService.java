@@ -1,8 +1,14 @@
 package com.edmara.alimentos.sale;
 
+import com.edmara.alimentos.commission.CommissionRateHistory;
+import com.edmara.alimentos.commission.CommissionRateHistoryRepository;
 import com.edmara.alimentos.common.ResourceNotFoundException;
 import com.edmara.alimentos.customer.Customer;
 import com.edmara.alimentos.customer.CustomerRepository;
+import com.edmara.alimentos.payment.Payment;
+import com.edmara.alimentos.payment.PaymentRepository;
+import com.edmara.alimentos.payment.dto.PaymentResponse;
+import com.edmara.alimentos.payment.dto.RegisterPaymentRequest;
 import com.edmara.alimentos.product.Product;
 import com.edmara.alimentos.product.ProductPriceHistory;
 import com.edmara.alimentos.product.ProductPriceHistoryRepository;
@@ -29,17 +35,23 @@ public class SaleService {
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
     private final ProductPriceHistoryRepository priceHistoryRepository;
+    private final CommissionRateHistoryRepository commissionRateHistoryRepository;
+    private final PaymentRepository paymentRepository;
 
     public SaleService(
         SaleRepository saleRepository,
         CustomerRepository customerRepository,
         ProductRepository productRepository,
-        ProductPriceHistoryRepository priceHistoryRepository
+        ProductPriceHistoryRepository priceHistoryRepository,
+        CommissionRateHistoryRepository commissionRateHistoryRepository,
+        PaymentRepository paymentRepository
     ) {
         this.saleRepository = saleRepository;
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
         this.priceHistoryRepository = priceHistoryRepository;
+        this.commissionRateHistoryRepository = commissionRateHistoryRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -69,6 +81,14 @@ public class SaleService {
 
         Instant saleDate = request.saleDate() != null ? request.saleDate() : Instant.now();
         Sale sale = new Sale(currentUser, customer, saleDate);
+
+        // Trava a taxa de comissão vigente do vendedor no momento da venda (ADR 0001/0002),
+        // igual ao lock de preço dos produtos. Se o vendedor ainda não tem taxa configurada,
+        // assume 0% em vez de bloquear o lançamento da venda.
+        BigDecimal commissionRate = commissionRateHistoryRepository.findByVendedor_IdAndEffectiveToIsNull(currentUser.getId())
+            .map(CommissionRateHistory::getRate)
+            .orElse(BigDecimal.ZERO);
+        sale.setCommissionRateApplied(commissionRate);
 
         BigDecimal total = BigDecimal.ZERO;
         for (SaleItemRequest itemRequest : request.items()) {
@@ -102,6 +122,40 @@ public class SaleService {
             throw new IllegalArgumentException("Não é possível cancelar uma venda já paga");
         }
         sale.setStatus(SaleStatus.CANCELLED);
+        return SaleResponse.from(sale);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaymentResponse> listPayments(UUID saleId, AppUser currentUser) {
+        Sale sale = findSale(saleId);
+        assertOwnership(sale, currentUser);
+        return paymentRepository.findBySale_IdOrderByPaymentDateDesc(saleId).stream()
+            .map(PaymentResponse::from)
+            .toList();
+    }
+
+    @Transactional
+    public SaleResponse registerPayment(UUID saleId, RegisterPaymentRequest request, AppUser currentUser) {
+        Sale sale = findSale(saleId);
+        assertOwnership(sale, currentUser);
+
+        if (sale.getStatus() != SaleStatus.PENDING) {
+            throw new IllegalArgumentException("Esta venda não está aguardando pagamento");
+        }
+
+        Payment payment = new Payment(
+            sale, sale.getTotalAmount(), Instant.now(), request.paymentMethod(), currentUser, request.notes()
+        );
+        paymentRepository.save(payment);
+
+        sale.setStatus(SaleStatus.PAID);
+        BigDecimal rate = sale.getCommissionRateApplied() != null ? sale.getCommissionRateApplied() : BigDecimal.ZERO;
+        BigDecimal commission = sale.getTotalAmount()
+            .multiply(rate)
+            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        sale.setCommissionAmount(commission);
+        sale.setCommissionStatus(CommissionStatus.EARNED);
+
         return SaleResponse.from(sale);
     }
 
