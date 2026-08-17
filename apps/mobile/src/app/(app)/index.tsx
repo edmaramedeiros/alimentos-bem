@@ -23,6 +23,10 @@ export default function DashboardScreen() {
         Clientes
       </Button>
 
+      <Button mode="contained" onPress={() => router.push('/sales')} style={styles.navButton}>
+        Vendas
+      </Button>
+
       <Button mode="outlined" onPress={logout} style={styles.button}>
         Sair
       </Button>

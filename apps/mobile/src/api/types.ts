@@ -47,3 +47,31 @@ export type Customer = {
   ownerVendedorId: string;
   ownerVendedorName: string;
 };
+
+export type SaleStatus = 'PENDING' | 'PAID' | 'CANCELLED';
+
+export type SaleItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+};
+
+export type SaleSummary = {
+  id: string;
+  vendedorId: string;
+  vendedorName: string;
+  customerId: string;
+  customerName: string;
+  saleDate: string;
+  status: SaleStatus;
+  totalAmount: number;
+  itemCount: number;
+};
+
+export type Sale = SaleSummary & {
+  items: SaleItem[];
+};
