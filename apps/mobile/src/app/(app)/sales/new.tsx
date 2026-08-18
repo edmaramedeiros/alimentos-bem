@@ -1,77 +1,60 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Divider, HelperText, IconButton, List, Portal, Text, TextInput } from 'react-native-paper';
+import { Button, Dialog, HelperText, IconButton, List, Portal, Text, TextInput } from 'react-native-paper';
 
 import { ApiError } from '@/api/client';
 import { listCustomers } from '@/api/customers';
 import { listProducts } from '@/api/products';
 import { createSale } from '@/api/sales';
-import type { Customer, Product } from '@/api/types';
+import type { Customer } from '@/api/types';
 import { formatCurrencyBRL } from '@/utils/format';
 
-type CartItem = {
-  product: Product;
-  quantity: number;
-};
+function parseQuantity(text: string): number {
+  const digitsOnly = text.replace(/[^0-9]/g, '');
+  if (!digitsOnly) return 0;
+  return Math.max(0, parseInt(digitsOnly, 10));
+}
 
 export default function NewSaleScreen() {
   const queryClient = useQueryClient();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerPickerVisible, setCustomerPickerVisible] = useState(false);
-
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [productPickerVisible, setProductPickerVisible] = useState(false);
-  const [pickingProduct, setPickingProduct] = useState<Product | null>(null);
-  const [quantityInput, setQuantityInput] = useState('1');
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: () => listCustomers() });
   const productsQuery = useQuery({ queryKey: ['products', true], queryFn: () => listProducts(true) });
+  const products = productsQuery.data ?? [];
 
-  const total = cart.reduce((sum, item) => sum + item.product.currentPrice * item.quantity, 0);
-
-  const openProductPicker = () => {
-    setPickingProduct(null);
-    setQuantityInput('1');
-    setProductPickerVisible(true);
+  const setQuantity = (productId: string, value: number) => {
+    setQuantities((current) => ({ ...current, [productId]: Math.max(0, Math.floor(value)) }));
   };
 
-  const confirmAddProduct = () => {
-    if (!pickingProduct) return;
-    const quantity = Number(quantityInput.replace(',', '.'));
-    if (!quantity || quantity <= 0) return;
+  const selectedItems = useMemo(
+    () => products.filter((product) => (quantities[product.id] ?? 0) > 0),
+    [products, quantities]
+  );
 
-    setCart((current) => {
-      const existing = current.find((item) => item.product.id === pickingProduct.id);
-      if (existing) {
-        return current.map((item) =>
-          item.product.id === pickingProduct.id ? { ...item, quantity: item.quantity + quantity } : item
-        );
-      }
-      return [...current, { product: pickingProduct, quantity }];
-    });
-    setProductPickerVisible(false);
-  };
+  const total = useMemo(
+    () => selectedItems.reduce((sum, product) => sum + product.currentPrice * (quantities[product.id] ?? 0), 0),
+    [selectedItems, quantities]
+  );
 
-  const removeItem = (productId: string) => {
-    setCart((current) => current.filter((item) => item.product.id !== productId));
-  };
-
-  const canSubmit = !!customer && cart.length > 0 && !submitting;
+  const canSubmit = !!customer && selectedItems.length > 0 && !submitting;
 
   const onSubmit = async () => {
-    if (!customer || cart.length === 0) return;
+    if (!customer || selectedItems.length === 0) return;
     setSubmitting(true);
     setServerError(null);
     try {
       const sale = await createSale({
         customerId: customer.id,
-        items: cart.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
+        items: selectedItems.map((product) => ({ productId: product.id, quantity: quantities[product.id] })),
       });
       await queryClient.invalidateQueries({ queryKey: ['sales'] });
       router.replace(`/sales/${sale.id}`);
@@ -107,22 +90,54 @@ export default function NewSaleScreen() {
       <Text variant="titleMedium" style={styles.sectionTitle}>
         Produtos
       </Text>
-      {cart.map((item) => (
-        <List.Item
-          key={item.product.id}
-          title={item.product.name}
-          description={`${item.quantity} ${item.product.unit} × ${formatCurrencyBRL(item.product.currentPrice)}`}
-          right={() => (
-            <View style={styles.itemRight}>
-              <Text style={styles.subtotal}>{formatCurrencyBRL(item.product.currentPrice * item.quantity)}</Text>
-              <IconButton icon="close" size={20} onPress={() => removeItem(item.product.id)} />
+      {productsQuery.isLoading ? (
+        <Text style={styles.muted}>Carregando produtos...</Text>
+      ) : products.length === 0 ? (
+        <Text style={styles.muted}>Nenhum produto ativo cadastrado.</Text>
+      ) : (
+        products.map((product) => {
+          const qty = quantities[product.id] ?? 0;
+          return (
+            <View key={product.id} style={styles.productRow}>
+              <View style={styles.productInfo}>
+                <Text>{product.name}</Text>
+                <Text style={styles.muted}>
+                  {formatCurrencyBRL(product.currentPrice)} / {product.unit}
+                </Text>
+              </View>
+
+              <View style={styles.stepper}>
+                <IconButton
+                  icon="minus"
+                  size={18}
+                  mode="outlined"
+                  onPress={() => setQuantity(product.id, qty - 1)}
+                  disabled={qty <= 0}
+                  accessibilityLabel={`Diminuir quantidade de ${product.name}`}
+                />
+                <TextInput
+                  mode="outlined"
+                  dense
+                  keyboardType="number-pad"
+                  value={String(qty)}
+                  onChangeText={(text) => setQuantity(product.id, parseQuantity(text))}
+                  style={styles.qtyInput}
+                  contentStyle={styles.qtyInputContent}
+                />
+                <IconButton
+                  icon="plus"
+                  size={18}
+                  mode="outlined"
+                  onPress={() => setQuantity(product.id, qty + 1)}
+                  accessibilityLabel={`Aumentar quantidade de ${product.name}`}
+                />
+              </View>
+
+              <Text style={styles.subtotal}>{qty > 0 ? formatCurrencyBRL(product.currentPrice * qty) : '—'}</Text>
             </View>
-          )}
-        />
-      ))}
-      <Button mode="outlined" onPress={openProductPicker} style={styles.pickButton}>
-        Adicionar produto
-      </Button>
+          );
+        })
+      )}
 
       <View style={styles.totalRow}>
         <Text variant="titleMedium">Total</Text>
@@ -137,7 +152,6 @@ export default function NewSaleScreen() {
         Finalizar venda
       </Button>
 
-      {/* Customer picker */}
       <Portal>
         <Dialog visible={customerPickerVisible} onDismiss={() => setCustomerPickerVisible(false)} style={styles.dialog}>
           <Dialog.Title>Selecionar cliente</Dialog.Title>
@@ -165,48 +179,6 @@ export default function NewSaleScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-
-      {/* Product picker */}
-      <Portal>
-        <Dialog visible={productPickerVisible} onDismiss={() => setProductPickerVisible(false)} style={styles.dialog}>
-          <Dialog.Title>{pickingProduct ? pickingProduct.name : 'Selecionar produto'}</Dialog.Title>
-          {pickingProduct ? (
-            <Dialog.Content>
-              <Text style={styles.muted}>{formatCurrencyBRL(pickingProduct.currentPrice)} / {pickingProduct.unit}</Text>
-              <TextInput
-                label="Quantidade"
-                mode="outlined"
-                keyboardType="decimal-pad"
-                value={quantityInput}
-                onChangeText={setQuantityInput}
-                style={styles.quantityInput}
-              />
-            </Dialog.Content>
-          ) : (
-            <Dialog.ScrollArea style={styles.dialogScroll}>
-              <ScrollView>
-                {productsQuery.data?.map((p) => (
-                  <List.Item
-                    key={p.id}
-                    title={p.name}
-                    description={`${formatCurrencyBRL(p.currentPrice)} / ${p.unit}`}
-                    onPress={() => {
-                      setPickingProduct(p);
-                      setQuantityInput('1');
-                    }}
-                  />
-                ))}
-              </ScrollView>
-            </Dialog.ScrollArea>
-          )}
-          <Dialog.Actions>
-            {pickingProduct && <Button onPress={() => setPickingProduct(null)}>Voltar</Button>}
-            {pickingProduct && <Button onPress={confirmAddProduct}>Adicionar</Button>}
-            {!pickingProduct && <Button onPress={() => setProductPickerVisible(false)}>Fechar</Button>}
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-      <Divider />
     </ScrollView>
   );
 }
@@ -216,13 +188,24 @@ const styles = StyleSheet.create({
   title: { marginBottom: 8 },
   sectionTitle: { marginTop: 24, marginBottom: 4 },
   pickButton: { marginTop: 8 },
-  itemRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  subtotal: { fontWeight: '600', alignSelf: 'center' },
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECCFB1',
+    gap: 8,
+  },
+  productInfo: { flex: 1, minWidth: 120 },
+  stepper: { flexDirection: 'row', alignItems: 'center' },
+  qtyInput: { width: 56, height: 40, textAlign: 'center' },
+  qtyInputContent: { textAlign: 'center' },
+  subtotal: { fontWeight: '600', minWidth: 90, textAlign: 'right' },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#ECCFB1' },
   submitButton: { marginTop: 16, marginBottom: 32 },
   dialog: { maxHeight: '80%' },
   dialogScroll: { maxHeight: 400 },
   emptyDialog: { padding: 16, opacity: 0.6 },
-  muted: { opacity: 0.7, marginBottom: 8 },
-  quantityInput: { marginTop: 8 },
+  muted: { opacity: 0.7 },
 });
