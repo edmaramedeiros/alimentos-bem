@@ -7,7 +7,6 @@ import { useAuthStore } from '@/store/auth-store';
 export default function DashboardScreen() {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === 'ADMIN';
-  const logout = useAuthStore((state) => state.logout);
 
   return (
     <View style={styles.container}>
@@ -37,10 +36,6 @@ export default function DashboardScreen() {
           Usuários
         </Button>
       )}
-
-      <Button mode="outlined" onPress={logout} style={styles.button}>
-        Sair
-      </Button>
     </View>
   );
 }
@@ -49,5 +44,4 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, gap: 8 },
   role: { opacity: 0.7, marginBottom: 24 },
   navButton: { alignSelf: 'flex-start' },
-  button: { alignSelf: 'flex-start', marginTop: 24 },
 });
