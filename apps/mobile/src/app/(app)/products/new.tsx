@@ -9,11 +9,13 @@ import { z } from 'zod';
 
 import { ApiError } from '@/api/client';
 import { createProduct } from '@/api/products';
+import { CategoryPicker } from '@/components/category-picker';
 import { RequireRole } from '@/components/require-role';
 
 const schema = z.object({
   name: z.string().min(1, 'Informe o nome'),
   sku: z.string().optional(),
+  category: z.string().optional(),
   description: z.string().optional(),
   unit: z.string().min(1, 'Informe a unidade'),
   price: z.string().min(1, 'Informe o preço'),
@@ -32,7 +34,7 @@ function NewProductForm() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', sku: '', description: '', unit: '', price: '' },
+    defaultValues: { name: '', sku: '', category: '', description: '', unit: '', price: '' },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -47,6 +49,7 @@ function NewProductForm() {
       await createProduct({
         name: data.name,
         sku: data.sku || undefined,
+        category: data.category || undefined,
         description: data.description || undefined,
         unit: data.unit,
         price,
@@ -79,10 +82,16 @@ function NewProductForm() {
 
       <Controller
         control={control}
+        name="category"
+        render={({ field: { onChange, value } }) => <CategoryPicker value={value ?? ''} onChange={onChange} />}
+      />
+
+      <Controller
+        control={control}
         name="unit"
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
-            label="Unidade (ex: pacote 500g)"
+            label="Unidade (ex: 500g)"
             mode="outlined"
             onBlur={onBlur}
             onChangeText={onChange}

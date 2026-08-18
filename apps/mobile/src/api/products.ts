@@ -1,18 +1,26 @@
 import { apiRequest } from '@/api/client';
 import type { PriceHistoryEntry, Product } from '@/api/types';
 
-export function listProducts(active?: boolean): Promise<Product[]> {
-  const query = active === undefined ? '' : `?active=${active}`;
-  return apiRequest<Product[]>(`/api/products${query}`);
+export function listProducts(active?: boolean, category?: string): Promise<Product[]> {
+  const params = new URLSearchParams();
+  if (active !== undefined) params.set('active', String(active));
+  if (category) params.set('category', category);
+  const query = params.toString();
+  return apiRequest<Product[]>(`/api/products${query ? `?${query}` : ''}`);
 }
 
 export function getProduct(id: string): Promise<Product> {
   return apiRequest<Product>(`/api/products/${id}`);
 }
 
+export function getProductCategories(): Promise<string[]> {
+  return apiRequest<string[]>('/api/products/categories');
+}
+
 export type CreateProductInput = {
   name: string;
   sku?: string;
+  category?: string;
   description?: string;
   unit: string;
   price: number;
@@ -25,6 +33,7 @@ export function createProduct(input: CreateProductInput): Promise<Product> {
 export type UpdateProductInput = {
   name: string;
   sku?: string;
+  category?: string;
   description?: string;
   unit: string;
   active: boolean;

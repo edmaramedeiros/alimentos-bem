@@ -35,8 +35,16 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<ProductResponse> list(@RequestParam(required = false) Boolean active) {
-        return productService.list(active);
+    public List<ProductResponse> list(
+        @RequestParam(required = false) Boolean active,
+        @RequestParam(required = false) String category
+    ) {
+        return productService.list(active, category);
+    }
+
+    @GetMapping("/categories")
+    public List<String> listCategories() {
+        return productService.listCategories();
     }
 
     @GetMapping("/{id}")

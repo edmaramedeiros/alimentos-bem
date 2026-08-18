@@ -10,6 +10,7 @@ import com.edmara.alimentos.product.dto.UpdateProductRequest;
 import com.edmara.alimentos.user.AppUser;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +28,11 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> list(Boolean active) {
+    public List<ProductResponse> list(Boolean active, String category) {
         List<Product> products = active == null ? productRepository.findAll() : filterByActive(active);
+        if (StringUtils.hasText(category)) {
+            products = products.stream().filter(p -> category.equals(p.getCategory())).toList();
+        }
         return products.stream().map(ProductResponse::from).toList();
     }
 
@@ -36,6 +40,17 @@ public class ProductService {
         return active
             ? productRepository.findByActiveTrue()
             : productRepository.findAll().stream().filter(p -> !p.isActive()).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> listCategories() {
+        return productRepository.findAll().stream()
+            .map(Product::getCategory)
+            .filter(Objects::nonNull)
+            .filter(StringUtils::hasText)
+            .distinct()
+            .sorted()
+            .toList();
     }
 
     @Transactional(readOnly = true)
@@ -48,7 +63,7 @@ public class ProductService {
         if (StringUtils.hasText(request.sku()) && productRepository.existsBySku(request.sku())) {
             throw new ConflictException("Já existe um produto com este SKU");
         }
-        Product product = new Product(request.name(), request.sku(), request.description(), request.unit());
+        Product product = new Product(request.name(), request.sku(), request.category(), request.description(), request.unit());
         product.setCurrentPrice(request.price());
         product = productRepository.save(product);
 
@@ -68,6 +83,7 @@ public class ProductService {
         }
         product.setName(request.name());
         product.setSku(request.sku());
+        product.setCategory(request.category());
         product.setDescription(request.description());
         product.setUnit(request.unit());
         product.setActive(request.active());

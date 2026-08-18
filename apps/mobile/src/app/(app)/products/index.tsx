@@ -1,12 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { SectionList, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, FAB, List, Text } from 'react-native-paper';
 
 import { listProducts } from '@/api/products';
 import { useAuthStore } from '@/store/auth-store';
 import { formatCurrencyBRL } from '@/utils/format';
+import { groupByCategory } from '@/utils/group-by-category';
 
 export default function ProductsScreen() {
   const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
@@ -21,6 +22,8 @@ export default function ProductsScreen() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     }, [queryClient])
   );
+
+  const sections = useMemo(() => groupByCategory(data ?? []), [data]);
 
   if (isLoading) {
     return (
@@ -40,9 +43,11 @@ export default function ProductsScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={data}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
+        stickySectionHeadersEnabled
+        renderSectionHeader={({ section }) => <List.Subheader style={styles.sectionHeader}>{section.title}</List.Subheader>}
         renderItem={({ item }) => (
           <List.Item
             title={item.name}
@@ -63,6 +68,7 @@ export default function ProductsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  sectionHeader: { backgroundColor: '#F4EFEB', fontWeight: '700' },
   price: { alignSelf: 'center', fontWeight: '600' },
   empty: { textAlign: 'center', marginTop: 32, opacity: 0.6 },
   fab: { position: 'absolute', right: 16, bottom: 16 },

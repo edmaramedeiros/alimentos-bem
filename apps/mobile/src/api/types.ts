@@ -18,6 +18,7 @@ export type Product = {
   id: string;
   name: string;
   sku: string | null;
+  category: string | null;
   description: string | null;
   unit: string;
   active: boolean;

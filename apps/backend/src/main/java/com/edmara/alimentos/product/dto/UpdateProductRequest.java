@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 public record UpdateProductRequest(
     @NotBlank(message = "Nome é obrigatório") String name,
     String sku,
+    String category,
     String description,
     @NotBlank(message = "Unidade é obrigatória") String unit,
     @NotNull(message = "Situação (ativo/inativo) é obrigatória") Boolean active

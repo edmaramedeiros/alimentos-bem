@@ -10,6 +10,7 @@ import { listProducts } from '@/api/products';
 import { createSale } from '@/api/sales';
 import type { Customer } from '@/api/types';
 import { formatCurrencyBRL } from '@/utils/format';
+import { groupByCategory } from '@/utils/group-by-category';
 
 function parseQuantity(text: string): number {
   const digitsOnly = text.replace(/[^0-9]/g, '');
@@ -30,6 +31,7 @@ export default function NewSaleScreen() {
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: () => listCustomers() });
   const productsQuery = useQuery({ queryKey: ['products', true], queryFn: () => listProducts(true) });
   const products = productsQuery.data ?? [];
+  const productSections = useMemo(() => groupByCategory(products), [products]);
 
   const setQuantity = (productId: string, value: number) => {
     setQuantities((current) => ({ ...current, [productId]: Math.max(0, Math.floor(value)) }));
@@ -95,48 +97,55 @@ export default function NewSaleScreen() {
       ) : products.length === 0 ? (
         <Text style={styles.muted}>Nenhum produto ativo cadastrado.</Text>
       ) : (
-        products.map((product) => {
-          const qty = quantities[product.id] ?? 0;
-          return (
-            <View key={product.id} style={styles.productRow}>
-              <View style={styles.productInfo}>
-                <Text>{product.name}</Text>
-                <Text style={styles.muted}>
-                  {formatCurrencyBRL(product.currentPrice)} / {product.unit}
-                </Text>
-              </View>
+        productSections.map((section) => (
+          <View key={section.title}>
+            <Text variant="labelLarge" style={styles.categoryHeader}>
+              {section.title}
+            </Text>
+            {section.data.map((product) => {
+              const qty = quantities[product.id] ?? 0;
+              return (
+                <View key={product.id} style={styles.productRow}>
+                  <View style={styles.productInfo}>
+                    <Text>{product.name}</Text>
+                    <Text style={styles.muted}>
+                      {formatCurrencyBRL(product.currentPrice)} / {product.unit}
+                    </Text>
+                  </View>
 
-              <View style={styles.stepper}>
-                <IconButton
-                  icon="minus"
-                  size={18}
-                  mode="outlined"
-                  onPress={() => setQuantity(product.id, qty - 1)}
-                  disabled={qty <= 0}
-                  accessibilityLabel={`Diminuir quantidade de ${product.name}`}
-                />
-                <TextInput
-                  mode="outlined"
-                  dense
-                  keyboardType="number-pad"
-                  value={String(qty)}
-                  onChangeText={(text) => setQuantity(product.id, parseQuantity(text))}
-                  style={styles.qtyInput}
-                  contentStyle={styles.qtyInputContent}
-                />
-                <IconButton
-                  icon="plus"
-                  size={18}
-                  mode="outlined"
-                  onPress={() => setQuantity(product.id, qty + 1)}
-                  accessibilityLabel={`Aumentar quantidade de ${product.name}`}
-                />
-              </View>
+                  <View style={styles.stepper}>
+                    <IconButton
+                      icon="minus"
+                      size={18}
+                      mode="outlined"
+                      onPress={() => setQuantity(product.id, qty - 1)}
+                      disabled={qty <= 0}
+                      accessibilityLabel={`Diminuir quantidade de ${product.name}`}
+                    />
+                    <TextInput
+                      mode="outlined"
+                      dense
+                      keyboardType="number-pad"
+                      value={String(qty)}
+                      onChangeText={(text) => setQuantity(product.id, parseQuantity(text))}
+                      style={styles.qtyInput}
+                      contentStyle={styles.qtyInputContent}
+                    />
+                    <IconButton
+                      icon="plus"
+                      size={18}
+                      mode="outlined"
+                      onPress={() => setQuantity(product.id, qty + 1)}
+                      accessibilityLabel={`Aumentar quantidade de ${product.name}`}
+                    />
+                  </View>
 
-              <Text style={styles.subtotal}>{qty > 0 ? formatCurrencyBRL(product.currentPrice * qty) : '—'}</Text>
-            </View>
-          );
-        })
+                  <Text style={styles.subtotal}>{qty > 0 ? formatCurrencyBRL(product.currentPrice * qty) : '—'}</Text>
+                </View>
+              );
+            })}
+          </View>
+        ))
       )}
 
       <View style={styles.totalRow}>
@@ -188,6 +197,7 @@ const styles = StyleSheet.create({
   title: { marginBottom: 8 },
   sectionTitle: { marginTop: 24, marginBottom: 4 },
   pickButton: { marginTop: 8 },
+  categoryHeader: { marginTop: 16, opacity: 0.7 },
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',

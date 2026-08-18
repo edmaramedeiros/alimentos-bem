@@ -16,6 +16,9 @@ public class Product extends BaseEntity {
     @Column(length = 60)
     private String sku;
 
+    @Column(length = 60)
+    private String category;
+
     @Column(columnDefinition = "text")
     private String description;
 
@@ -32,9 +35,10 @@ public class Product extends BaseEntity {
         // JPA
     }
 
-    public Product(String name, String sku, String description, String unit) {
+    public Product(String name, String sku, String category, String description, String unit) {
         this.name = name;
         this.sku = sku;
+        this.category = category;
         this.description = description;
         this.unit = unit;
         this.active = true;
@@ -54,6 +58,14 @@ public class Product extends BaseEntity {
 
     public void setSku(String sku) {
         this.sku = sku;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public String getDescription() {
