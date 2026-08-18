@@ -36,7 +36,7 @@ public class Sale extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private SaleStatus status = SaleStatus.PENDING;
+    private SaleStatus status = SaleStatus.AWAITING_DELIVERY;
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
@@ -63,7 +63,7 @@ public class Sale extends BaseEntity {
         this.vendedor = vendedor;
         this.customer = customer;
         this.saleDate = saleDate;
-        this.status = SaleStatus.PENDING;
+        this.status = SaleStatus.AWAITING_DELIVERY;
         this.totalAmount = BigDecimal.ZERO;
     }
 

@@ -67,7 +67,8 @@ export default function SalesScreen() {
 
 function statusChipStyle(status: string) {
   if (status === 'PAID') return { backgroundColor: '#C6C664' };
-  if (status === 'CANCELLED') return { backgroundColor: '#ECCFB1' };
+  if (status === 'CANCELLED') return { backgroundColor: '#DC9251' };
+  if (status === 'AWAITING_DELIVERY') return { backgroundColor: '#ECCFB1' };
   return { backgroundColor: '#F4EFEB' };
 }
 

@@ -52,6 +52,11 @@ public class SaleController {
         return saleService.cancel(id, currentUser);
     }
 
+    @PostMapping("/{id}/deliver")
+    public SaleResponse markAsDelivered(@PathVariable UUID id, @AuthenticationPrincipal AppUser currentUser) {
+        return saleService.markAsDelivered(id, currentUser);
+    }
+
     @GetMapping("/{id}/payments")
     public List<PaymentResponse> listPayments(@PathVariable UUID id, @AuthenticationPrincipal AppUser currentUser) {
         return saleService.listPayments(id, currentUser);

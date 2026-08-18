@@ -6,9 +6,11 @@ export function formatDateTimeBR(iso: string): string {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
 }
 
-export function saleStatusLabel(status: 'PENDING' | 'PAID' | 'CANCELLED'): string {
+export function saleStatusLabel(status: 'AWAITING_DELIVERY' | 'AWAITING_PAYMENT' | 'PAID' | 'CANCELLED'): string {
   switch (status) {
-    case 'PENDING':
+    case 'AWAITING_DELIVERY':
+      return 'Aguardando entrega';
+    case 'AWAITING_PAYMENT':
       return 'Aguardando pagamento';
     case 'PAID':
       return 'Pago';

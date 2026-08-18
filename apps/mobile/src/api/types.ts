@@ -49,7 +49,7 @@ export type Customer = {
   ownerVendedorName: string;
 };
 
-export type SaleStatus = 'PENDING' | 'PAID' | 'CANCELLED';
+export type SaleStatus = 'AWAITING_DELIVERY' | 'AWAITING_PAYMENT' | 'PAID' | 'CANCELLED';
 
 export type SaleItem = {
   id: string;

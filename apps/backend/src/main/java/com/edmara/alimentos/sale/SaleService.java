@@ -121,7 +121,21 @@ public class SaleService {
         if (sale.getStatus() == SaleStatus.PAID) {
             throw new IllegalArgumentException("Não é possível cancelar uma venda já paga");
         }
+        if (sale.getStatus() == SaleStatus.CANCELLED) {
+            throw new IllegalArgumentException("Esta venda já está cancelada");
+        }
         sale.setStatus(SaleStatus.CANCELLED);
+        return SaleResponse.from(sale);
+    }
+
+    @Transactional
+    public SaleResponse markAsDelivered(UUID id, AppUser currentUser) {
+        Sale sale = findSale(id);
+        assertOwnership(sale, currentUser);
+        if (sale.getStatus() != SaleStatus.AWAITING_DELIVERY) {
+            throw new IllegalArgumentException("Esta venda não está aguardando entrega");
+        }
+        sale.setStatus(SaleStatus.AWAITING_PAYMENT);
         return SaleResponse.from(sale);
     }
 
@@ -139,7 +153,7 @@ public class SaleService {
         Sale sale = findSale(saleId);
         assertOwnership(sale, currentUser);
 
-        if (sale.getStatus() != SaleStatus.PENDING) {
+        if (sale.getStatus() != SaleStatus.AWAITING_PAYMENT) {
             throw new IllegalArgumentException("Esta venda não está aguardando pagamento");
         }
 

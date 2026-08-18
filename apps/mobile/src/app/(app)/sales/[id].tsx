@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Chip, Dialog, List, Portal, RadioButton, Text } from 'react-native-paper';
 
 import { ApiError } from '@/api/client';
-import { cancelSale, getSale, registerPayment } from '@/api/sales';
+import { cancelSale, getSale, markSaleAsDelivered, registerPayment } from '@/api/sales';
 import type { PaymentMethod } from '@/api/types';
 import { formatCurrencyBRL, formatDateTimeBR, formatPercent, paymentMethodLabel, saleStatusLabel } from '@/utils/format';
 
@@ -19,6 +19,9 @@ export default function SaleDetailScreen() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
+  const [delivering, setDelivering] = useState(false);
+  const [deliverError, setDeliverError] = useState<string | null>(null);
+
   const [paymentDialogVisible, setPaymentDialogVisible] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PIX');
   const [registering, setRegistering] = useState(false);
@@ -26,15 +29,18 @@ export default function SaleDetailScreen() {
 
   const saleQuery = useQuery({ queryKey: ['sales', id], queryFn: () => getSale(id) });
 
+  const invalidateSale = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['sales', id] }),
+      queryClient.invalidateQueries({ queryKey: ['sales'] }),
+    ]);
+
   const handleCancel = async () => {
     setCancelling(true);
     setCancelError(null);
     try {
       await cancelSale(id);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['sales', id] }),
-        queryClient.invalidateQueries({ queryKey: ['sales'] }),
-      ]);
+      await invalidateSale();
       setConfirmVisible(false);
     } catch (error) {
       setCancelError(error instanceof ApiError ? error.message : 'Não foi possível cancelar a venda.');
@@ -43,16 +49,25 @@ export default function SaleDetailScreen() {
     }
   };
 
+  const handleMarkAsDelivered = async () => {
+    setDelivering(true);
+    setDeliverError(null);
+    try {
+      await markSaleAsDelivered(id);
+      await invalidateSale();
+    } catch (error) {
+      setDeliverError(error instanceof ApiError ? error.message : 'Não foi possível marcar como entregue.');
+    } finally {
+      setDelivering(false);
+    }
+  };
+
   const handleRegisterPayment = async () => {
     setRegistering(true);
     setPaymentError(null);
     try {
       await registerPayment(id, paymentMethod);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['sales', id] }),
-        queryClient.invalidateQueries({ queryKey: ['sales'] }),
-        queryClient.invalidateQueries({ queryKey: ['commissions'] }),
-      ]);
+      await Promise.all([invalidateSale(), queryClient.invalidateQueries({ queryKey: ['commissions'] })]);
       setPaymentDialogVisible(false);
     } catch (error) {
       setPaymentError(error instanceof ApiError ? error.message : 'Não foi possível registrar o pagamento.');
@@ -78,6 +93,7 @@ export default function SaleDetailScreen() {
   }
 
   const sale = saleQuery.data;
+  const canCancel = sale.status === 'AWAITING_DELIVERY' || sale.status === 'AWAITING_PAYMENT';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -115,15 +131,25 @@ export default function SaleDetailScreen() {
         </View>
       )}
 
-      {sale.status === 'PENDING' && (
+      {sale.status === 'AWAITING_DELIVERY' && (
         <>
-          <Button mode="contained" style={styles.payButton} onPress={() => setPaymentDialogVisible(true)}>
-            Marcar como recebido
+          <Button mode="contained" style={styles.payButton} onPress={handleMarkAsDelivered} loading={delivering} disabled={delivering}>
+            Marcar como entregue
           </Button>
-          <Button mode="outlined" textColor="#A74C39" style={styles.cancelButton} onPress={() => setConfirmVisible(true)}>
-            Cancelar venda
-          </Button>
+          {deliverError ? <Text style={styles.errorText}>{deliverError}</Text> : null}
         </>
+      )}
+
+      {sale.status === 'AWAITING_PAYMENT' && (
+        <Button mode="contained" style={styles.payButton} onPress={() => setPaymentDialogVisible(true)}>
+          Marcar como recebido
+        </Button>
+      )}
+
+      {canCancel && (
+        <Button mode="outlined" textColor="#A74C39" style={styles.cancelButton} onPress={() => setConfirmVisible(true)}>
+          Cancelar venda
+        </Button>
       )}
 
       <Portal>

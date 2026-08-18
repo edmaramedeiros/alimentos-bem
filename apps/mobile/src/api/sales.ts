@@ -27,6 +27,10 @@ export function cancelSale(id: string): Promise<Sale> {
   return apiRequest<Sale>(`/api/sales/${id}/cancel`, { method: 'POST' });
 }
 
+export function markSaleAsDelivered(id: string): Promise<Sale> {
+  return apiRequest<Sale>(`/api/sales/${id}/deliver`, { method: 'POST' });
+}
+
 export function listPayments(saleId: string): Promise<Payment[]> {
   return apiRequest<Payment[]>(`/api/sales/${saleId}/payments`);
 }
