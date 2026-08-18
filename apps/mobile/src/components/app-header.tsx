@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { Appbar, Menu } from 'react-native-paper';
 
@@ -12,18 +12,37 @@ const NAV_ITEMS: { href: '/' | '/products' | '/customers' | '/sales' | '/commiss
   { href: '/commissions', label: 'Comissões' },
 ];
 
+const LIST_ROUTES = new Set(['/', '/products', '/customers', '/sales', '/commissions', '/users']);
+
+/** Para /products/123 ou /products/new, devolve a tela de listagem "/products". */
+function listRouteFor(pathname: string): string {
+  const firstSegment = pathname.split('/').filter(Boolean)[0];
+  return firstSegment ? `/${firstSegment}` : '/';
+}
+
 export function AppHeader() {
   const [menuVisible, setMenuVisible] = useState(false);
   const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
   const logout = useAuthStore((state) => state.logout);
+  const pathname = usePathname();
+  const showBackButton = !LIST_ROUTES.has(pathname);
 
   const navigate = (href: string) => {
     setMenuVisible(false);
     router.push(href as never);
   };
 
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace(listRouteFor(pathname) as never);
+    }
+  };
+
   return (
     <Appbar.Header elevated>
+      {showBackButton && <Appbar.BackAction onPress={goBack} accessibilityLabel="Voltar" />}
       <Appbar.Content title="Edmara Medeiros" onPress={() => navigate('/')} />
 
       <Menu
