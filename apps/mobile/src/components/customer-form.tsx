@@ -81,7 +81,21 @@ export function CustomerForm({
             placeholder="(66) 99999-9999"
             maxLength={15}
             onBlur={onBlur}
-            onChangeText={(text) => onChange(formatPhoneMask(text))}
+            onChangeText={(text) => {
+              const formatted = formatPhoneMask(text);
+              onChange(formatted);
+
+              // Assim que o telefone vira um celular (9 logo depois do DD), já marca
+              // que aceita WhatsApp - só no instante em que essa condição passa a valer,
+              // pra não brigar com quem desmarcar manualmente depois.
+              const prevDigits = (value ?? '').replace(/\D/g, '');
+              const newDigits = formatted.replace(/\D/g, '');
+              const prevWasMobile = prevDigits.length >= 3 && prevDigits[2] === '9';
+              const newIsMobile = newDigits.length >= 3 && newDigits[2] === '9';
+              if (newIsMobile && !prevWasMobile) {
+                setValue('whatsappOptIn', true);
+              }
+            }}
             value={value}
             style={styles.input}
           />

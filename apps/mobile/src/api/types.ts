@@ -126,3 +126,34 @@ export type MonthlySalesPoint = {
   month: string;
   total: number;
 };
+
+export type WhatsappBroadcast = {
+  id: string;
+  message: string;
+  hasAttachment: boolean;
+  attachmentFileName: string | null;
+  cityFilter: string | null;
+  nameFilter: string | null;
+  delaySeconds: number;
+  status: 'QUEUED' | 'SENDING' | 'DONE' | 'FAILED';
+  recipientCount: number;
+  sentCount: number;
+  failedCount: number;
+  createdByName: string;
+  createdAt: string;
+};
+
+export type WhatsappBroadcastRecipient = {
+  id: string;
+  customerName: string;
+  phone: string;
+  status: 'QUEUED' | 'SENT' | 'FAILED';
+  errorMessage: string | null;
+  sentAt: string | null;
+};
+
+export type WhatsappSessionStatus = {
+  connected: boolean;
+  phoneNumber: string | null;
+  waitingForQr: boolean;
+};

@@ -8,6 +8,9 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  tomcat:
+    max-http-form-post-size: 15MB
+    max-swallow-size: 15MB
 
 app:
   jwt:
@@ -15,6 +18,9 @@ app:
     expiration-hours: 8
   cors:
     allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:8081}
+  whatsapp:
+    service-url: ${WHATSAPP_SERVICE_URL:http://localhost:3001}
+    api-key: ${WHATSAPP_SERVICE_API_KEY:troque-por-uma-chave-compartilhada}
   seed-admin:
     enabled: false
     name: ${SEED_ADMIN_NAME:Edmara Medeiros}

@@ -1,7 +1,5 @@
-# Blueprint do Render para o backend deste projeto.
+# Blueprint do Render para os serviços deste projeto.
 # Banco de dados (Postgres) é provisionado à parte no Neon (não no Render).
-# O servico whatsapp-service ainda nao tem Dockerfile (Marco 7, nao iniciado)
-# e por isso nao entra neste blueprint ainda.
 # Preencha os valores de env marcados como sync: false diretamente no
 # dashboard do Render (não versione segredos aqui).
 
@@ -25,3 +23,21 @@ services:
         sync: false
       - key: CORS_ALLOWED_ORIGIN
         sync: false
+      - key: WHATSAPP_SERVICE_URL
+        sync: false
+      - key: WHATSAPP_SERVICE_API_KEY
+        sync: false
+
+  - type: web
+    name: edmara-whatsapp-service
+    runtime: docker
+    dockerContext: apps/whatsapp-service
+    dockerfilePath: apps/whatsapp-service/Dockerfile
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: INTERNAL_API_KEY
+        sync: false
+      - key: LOG_LEVEL
+        value: warn

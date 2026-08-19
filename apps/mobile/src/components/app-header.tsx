@@ -12,7 +12,7 @@ const NAV_ITEMS: { href: '/' | '/products' | '/customers' | '/sales' | '/commiss
   { href: '/commissions', label: 'Comissões' },
 ];
 
-const LIST_ROUTES = new Set(['/', '/products', '/customers', '/sales', '/commissions', '/users']);
+const LIST_ROUTES = new Set(['/', '/products', '/customers', '/sales', '/commissions', '/users', '/whatsapp']);
 
 /** Para /products/123 ou /products/new, devolve a tela de listagem "/products". */
 function listRouteFor(pathname: string): string {
@@ -54,6 +54,7 @@ export function AppHeader() {
           <Menu.Item key={item.href} title={item.label} onPress={() => navigate(item.href)} />
         ))}
         {isAdmin && <Menu.Item title="Usuários" onPress={() => navigate('/users')} />}
+        {isAdmin && <Menu.Item title="WhatsApp" onPress={() => navigate('/whatsapp')} />}
       </Menu>
 
       <Appbar.Action icon="logout" onPress={logout} accessibilityLabel="Sair" />
