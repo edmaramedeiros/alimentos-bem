@@ -4,6 +4,10 @@ import { StyleSheet, View } from 'react-native';
 import { Button, HelperText, Switch, Text, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 
+import { CityPicker } from '@/components/city-picker';
+import { StatePicker } from '@/components/state-picker';
+import { formatPhoneMask } from '@/utils/format';
+
 const schema = z.object({
   name: z.string().min(1, 'Informe o nome'),
   phone: z.string().optional(),
@@ -34,6 +38,8 @@ export function CustomerForm({
   const {
     control,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<CustomerFormData>({
     resolver: zodResolver(schema),
@@ -72,8 +78,10 @@ export function CustomerForm({
             label="Telefone / WhatsApp"
             mode="outlined"
             keyboardType="phone-pad"
+            placeholder="(66) 99999-9999"
+            maxLength={15}
             onBlur={onBlur}
-            onChangeText={onChange}
+            onChangeText={(text) => onChange(formatPhoneMask(text))}
             value={value}
             style={styles.input}
           />
@@ -110,36 +118,32 @@ export function CustomerForm({
       />
 
       <View style={styles.row}>
-        <Controller
-          control={control}
-          name="city"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              label="Cidade"
-              mode="outlined"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              style={[styles.input, styles.rowItem]}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="state"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              label="UF"
-              mode="outlined"
-              maxLength={2}
-              autoCapitalize="characters"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              style={[styles.input, styles.stateInput]}
-            />
-          )}
-        />
+        <View style={styles.stateInput}>
+          <Controller
+            control={control}
+            name="state"
+            render={({ field: { onChange, value } }) => (
+              <StatePicker
+                value={value ?? ''}
+                onChange={(uf) => {
+                  onChange(uf);
+                  if (watch('state') !== uf) {
+                    setValue('city', '');
+                  }
+                }}
+              />
+            )}
+          />
+        </View>
+        <View style={styles.rowItem}>
+          <Controller
+            control={control}
+            name="city"
+            render={({ field: { onChange, value } }) => (
+              <CityPicker value={value ?? ''} onChange={onChange} uf={watch('state') ?? ''} />
+            )}
+          />
+        </View>
       </View>
 
       <Controller

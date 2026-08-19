@@ -2,13 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, View } from 'react-native';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { Image, StyleSheet, View } from 'react-native';
+import { Button, HelperText, TextInput } from 'react-native-paper';
 import { z } from 'zod';
 
 import { login } from '@/api/auth';
 import { ApiError } from '@/api/client';
 import { useAuthStore } from '@/store/auth-store';
+import { brand } from '@/theme/paper-theme';
 
 const schema = z.object({
   email: z.string().min(1, 'Informe o e-mail').email('E-mail inválido'),
@@ -48,12 +49,12 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text variant="headlineMedium" style={styles.title}>
-          Edmara Medeiros
-        </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          alimentos do bem
-        </Text>
+        <Image
+          source={require('@/assets/images/logo-edmara-medeiros.png')}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel="Edmara Medeiros - alimentos do bem"
+        />
 
         <Controller
           control={control}
@@ -100,7 +101,15 @@ export default function LoginScreen() {
           {serverError}
         </HelperText>
 
-        <Button mode="contained" onPress={handleSubmit(onSubmit)} loading={submitting} disabled={submitting} style={styles.button}>
+        <Button
+          mode="contained"
+          onPress={handleSubmit(onSubmit)}
+          loading={submitting}
+          disabled={submitting}
+          style={styles.button}
+          buttonColor="#FFFFFF"
+          textColor={brand.oliveDark}
+        >
           Entrar
         </Button>
       </View>
@@ -109,10 +118,9 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: brand.oliveDark },
   card: { width: '100%', maxWidth: 400 },
-  title: { textAlign: 'center' },
-  subtitle: { textAlign: 'center', marginBottom: 24, fontStyle: 'italic' },
+  logo: { width: '100%', aspectRatio: 1200 / 457, marginBottom: 24, borderRadius: 12 },
   input: { marginTop: 8 },
   button: { marginTop: 16 },
 });

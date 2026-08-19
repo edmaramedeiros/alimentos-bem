@@ -43,7 +43,7 @@ export function AppHeader() {
   return (
     <Appbar.Header elevated>
       {showBackButton && <Appbar.BackAction onPress={goBack} accessibilityLabel="Voltar" />}
-      <Appbar.Content title="Edmara Medeiros" onPress={() => navigate('/')} />
+      <Appbar.Content title="Edmara Medeiros - Alimentos do Bem" onPress={() => navigate('/')} />
 
       <Menu
         visible={menuVisible}

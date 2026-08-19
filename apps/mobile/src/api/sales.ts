@@ -1,8 +1,18 @@
 import { apiRequest } from '@/api/client';
-import type { Payment, PaymentMethod, Sale, SaleSummary } from '@/api/types';
+import type { DailySalesPoint, MonthlySalesPoint, Payment, PaymentMethod, Sale, SaleSummary } from '@/api/types';
 
 export function listSales(): Promise<SaleSummary[]> {
   return apiRequest<SaleSummary[]>('/api/sales');
+}
+
+export function getMonthlySales(vendedorId?: string): Promise<MonthlySalesPoint[]> {
+  const query = vendedorId ? `?vendedorId=${vendedorId}` : '';
+  return apiRequest<MonthlySalesPoint[]>(`/api/sales/dashboard/monthly${query}`);
+}
+
+export function getDailySales(month: string, vendedorId?: string): Promise<DailySalesPoint[]> {
+  const query = vendedorId ? `&vendedorId=${vendedorId}` : '';
+  return apiRequest<DailySalesPoint[]>(`/api/sales/dashboard/daily?month=${month}${query}`);
 }
 
 export function getSale(id: string): Promise<Sale> {

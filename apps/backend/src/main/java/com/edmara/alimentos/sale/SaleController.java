@@ -3,6 +3,8 @@ package com.edmara.alimentos.sale;
 import com.edmara.alimentos.payment.dto.PaymentResponse;
 import com.edmara.alimentos.payment.dto.RegisterPaymentRequest;
 import com.edmara.alimentos.sale.dto.CreateSaleRequest;
+import com.edmara.alimentos.sale.dto.DailySalesPointResponse;
+import com.edmara.alimentos.sale.dto.MonthlySalesPointResponse;
 import com.edmara.alimentos.sale.dto.SaleResponse;
 import com.edmara.alimentos.sale.dto.SaleSummaryResponse;
 import com.edmara.alimentos.user.AppUser;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -55,6 +58,23 @@ public class SaleController {
     @PostMapping("/{id}/deliver")
     public SaleResponse markAsDelivered(@PathVariable UUID id, @AuthenticationPrincipal AppUser currentUser) {
         return saleService.markAsDelivered(id, currentUser);
+    }
+
+    @GetMapping("/dashboard/monthly")
+    public List<MonthlySalesPointResponse> monthlySales(
+        @RequestParam(required = false) UUID vendedorId,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return saleService.monthlySales(vendedorId, currentUser);
+    }
+
+    @GetMapping("/dashboard/daily")
+    public List<DailySalesPointResponse> dailySales(
+        @RequestParam String month,
+        @RequestParam(required = false) UUID vendedorId,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return saleService.dailySales(month, vendedorId, currentUser);
     }
 
     @GetMapping("/{id}/payments")

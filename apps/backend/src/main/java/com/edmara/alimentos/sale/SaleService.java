@@ -14,6 +14,8 @@ import com.edmara.alimentos.product.ProductPriceHistory;
 import com.edmara.alimentos.product.ProductPriceHistoryRepository;
 import com.edmara.alimentos.product.ProductRepository;
 import com.edmara.alimentos.sale.dto.CreateSaleRequest;
+import com.edmara.alimentos.sale.dto.DailySalesPointResponse;
+import com.edmara.alimentos.sale.dto.MonthlySalesPointResponse;
 import com.edmara.alimentos.sale.dto.SaleItemRequest;
 import com.edmara.alimentos.sale.dto.SaleResponse;
 import com.edmara.alimentos.sale.dto.SaleSummaryResponse;
@@ -22,7 +24,12 @@ import com.edmara.alimentos.user.Role;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -30,6 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SaleService {
+
+    private static final ZoneId DASHBOARD_ZONE = ZoneId.of("America/Cuiaba");
 
     private final SaleRepository saleRepository;
     private final CustomerRepository customerRepository;
@@ -171,6 +180,64 @@ public class SaleService {
         sale.setCommissionStatus(CommissionStatus.EARNED);
 
         return SaleResponse.from(sale);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MonthlySalesPointResponse> monthlySales(UUID vendedorId, AppUser currentUser) {
+        UUID effectiveVendedorId = resolveVendedorId(vendedorId, currentUser);
+        List<Sale> sales = fetchNonCancelledSales(effectiveVendedorId);
+
+        Map<YearMonth, BigDecimal> totalsByMonth = new TreeMap<>();
+        for (Sale sale : sales) {
+            YearMonth month = YearMonth.from(sale.getSaleDate().atZone(DASHBOARD_ZONE).toLocalDate());
+            totalsByMonth.merge(month, sale.getTotalAmount(), BigDecimal::add);
+        }
+
+        return totalsByMonth.entrySet().stream()
+            .sorted(Map.Entry.<YearMonth, BigDecimal>comparingByKey().reversed())
+            .map(entry -> new MonthlySalesPointResponse(entry.getKey().toString(), entry.getValue()))
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DailySalesPointResponse> dailySales(String monthParam, UUID vendedorId, AppUser currentUser) {
+        YearMonth month;
+        try {
+            month = YearMonth.parse(monthParam);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Mês inválido, use o formato AAAA-MM (ex: 2026-08)");
+        }
+
+        UUID effectiveVendedorId = resolveVendedorId(vendedorId, currentUser);
+        List<Sale> sales = fetchNonCancelledSales(effectiveVendedorId);
+
+        Map<Integer, BigDecimal> totalsByDay = new TreeMap<>();
+        for (int day = 1; day <= month.lengthOfMonth(); day++) {
+            totalsByDay.put(day, BigDecimal.ZERO.setScale(2));
+        }
+        for (Sale sale : sales) {
+            LocalDate saleLocalDate = sale.getSaleDate().atZone(DASHBOARD_ZONE).toLocalDate();
+            if (YearMonth.from(saleLocalDate).equals(month)) {
+                totalsByDay.merge(saleLocalDate.getDayOfMonth(), sale.getTotalAmount(), BigDecimal::add);
+            }
+        }
+
+        return totalsByDay.entrySet().stream()
+            .map(entry -> new DailySalesPointResponse(entry.getKey(), entry.getValue()))
+            .toList();
+    }
+
+    private List<Sale> fetchNonCancelledSales(UUID vendedorId) {
+        return vendedorId != null
+            ? saleRepository.findByVendedor_IdAndStatusNotOrderBySaleDateDesc(vendedorId, SaleStatus.CANCELLED)
+            : saleRepository.findByStatusNotOrderBySaleDateDesc(SaleStatus.CANCELLED);
+    }
+
+    private UUID resolveVendedorId(UUID requestedVendedorId, AppUser currentUser) {
+        if (currentUser.getRole() != Role.ADMIN) {
+            return currentUser.getId();
+        }
+        return requestedVendedorId;
     }
 
     private void assertOwnership(Sale sale, AppUser currentUser) {

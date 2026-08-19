@@ -116,3 +116,13 @@ export type CommissionReport = {
   totalEarned: number;
   entries: CommissionEntry[];
 };
+
+export type DailySalesPoint = {
+  day: number;
+  total: number;
+};
+
+export type MonthlySalesPoint = {
+  month: string;
+  total: number;
+};

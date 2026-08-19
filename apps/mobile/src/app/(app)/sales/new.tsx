@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, HelperText, IconButton, List, Portal, Text, TextInput } from 'react-native-paper';
+import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Dialog, HelperText, IconButton, List, Portal, Searchbar, Text, TextInput } from 'react-native-paper';
 
 import { ApiError } from '@/api/client';
 import { listCustomers } from '@/api/customers';
@@ -23,12 +23,30 @@ export default function NewSaleScreen() {
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerPickerVisible, setCustomerPickerVisible] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: () => listCustomers() });
+  const filteredCustomers = useMemo(() => {
+    const customers = customersQuery.data ?? [];
+    const normalized = customerSearch.trim().toLowerCase();
+    if (!normalized) return customers;
+    const normalizedDigits = normalized.replace(/\D/g, '');
+    return customers.filter((c) => {
+      const nameMatch = c.name.toLowerCase().includes(normalized);
+      const phoneDigits = (c.phone ?? '').replace(/\D/g, '');
+      const phoneMatch = normalizedDigits.length > 0 && phoneDigits.includes(normalizedDigits);
+      return nameMatch || phoneMatch;
+    });
+  }, [customersQuery.data, customerSearch]);
+
+  const openCustomerPicker = () => {
+    setCustomerSearch('');
+    setCustomerPickerVisible(true);
+  };
   const productsQuery = useQuery({ queryKey: ['products', true], queryFn: () => listProducts(true) });
   const products = productsQuery.data ?? [];
   const productSections = useMemo(() => groupByCategory(products), [products]);
@@ -79,12 +97,12 @@ export default function NewSaleScreen() {
       {customer ? (
         <List.Item
           title={customer.name}
-          description={customer.phone ?? undefined}
+          description={[customer.phone, customer.city].filter(Boolean).join(' · ') || undefined}
           left={(props) => <List.Icon {...props} icon="account" />}
-          onPress={() => setCustomerPickerVisible(true)}
+          onPress={openCustomerPicker}
         />
       ) : (
-        <Button mode="outlined" onPress={() => setCustomerPickerVisible(true)} style={styles.pickButton}>
+        <Button mode="outlined" onPress={openCustomerPicker} style={styles.pickButton}>
           Selecionar cliente
         </Button>
       )}
@@ -164,24 +182,29 @@ export default function NewSaleScreen() {
       <Portal>
         <Dialog visible={customerPickerVisible} onDismiss={() => setCustomerPickerVisible(false)} style={styles.dialog}>
           <Dialog.Title>Selecionar cliente</Dialog.Title>
+          <View style={styles.searchWrapper}>
+            <Searchbar placeholder="Buscar por nome ou telefone" value={customerSearch} onChangeText={setCustomerSearch} />
+          </View>
           <Dialog.ScrollArea style={styles.dialogScroll}>
-            <ScrollView>
-              {customersQuery.data?.length ? (
-                customersQuery.data.map((c) => (
+            {customersQuery.data?.length ? (
+              <FlatList
+                data={filteredCustomers}
+                keyExtractor={(c) => c.id}
+                renderItem={({ item: c }) => (
                   <List.Item
-                    key={c.id}
                     title={c.name}
-                    description={c.phone ?? undefined}
+                    description={[c.phone, c.city].filter(Boolean).join(' · ') || undefined}
                     onPress={() => {
                       setCustomer(c);
                       setCustomerPickerVisible(false);
                     }}
                   />
-                ))
-              ) : (
-                <Text style={styles.emptyDialog}>Nenhum cliente cadastrado ainda.</Text>
-              )}
-            </ScrollView>
+                )}
+                ListEmptyComponent={<Text style={styles.emptyDialog}>Nenhum cliente encontrado.</Text>}
+              />
+            ) : (
+              <Text style={styles.emptyDialog}>Nenhum cliente cadastrado ainda.</Text>
+            )}
           </Dialog.ScrollArea>
           <Dialog.Actions>
             <Button onPress={() => setCustomerPickerVisible(false)}>Fechar</Button>
@@ -215,6 +238,7 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#ECCFB1' },
   submitButton: { marginTop: 16, marginBottom: 32 },
   dialog: { maxHeight: '80%' },
+  searchWrapper: { paddingHorizontal: 24, paddingBottom: 8 },
   dialogScroll: { maxHeight: 400 },
   emptyDialog: { padding: 16, opacity: 0.6 },
   muted: { opacity: 0.7 },
