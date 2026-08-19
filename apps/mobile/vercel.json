@@ -1,4 +1,15 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/products/new", "destination": "/products/new.html" },
+    { "source": "/customers/new", "destination": "/customers/new.html" },
+    { "source": "/sales/new", "destination": "/sales/new.html" },
+    { "source": "/users/new", "destination": "/users/new.html" },
+    { "source": "/products/:id", "destination": "/products/[id].html" },
+    { "source": "/customers/:id", "destination": "/customers/[id].html" },
+    { "source": "/sales/:id", "destination": "/sales/[id].html" },
+    { "source": "/users/:id", "destination": "/users/[id].html" }
+  ]
 }
