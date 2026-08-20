@@ -7,6 +7,7 @@ import com.edmara.alimentos.customer.Customer;
 import com.edmara.alimentos.customer.CustomerRepository;
 import com.edmara.alimentos.payment.Payment;
 import com.edmara.alimentos.payment.PaymentRepository;
+import com.edmara.alimentos.payment.dto.PaymentAttachmentResponse;
 import com.edmara.alimentos.payment.dto.PaymentResponse;
 import com.edmara.alimentos.payment.dto.RegisterPaymentRequest;
 import com.edmara.alimentos.product.Product;
@@ -27,6 +28,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -34,11 +36,16 @@ import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class SaleService {
 
     private static final ZoneId DASHBOARD_ZONE = ZoneId.of("America/Cuiaba");
+
+    // Comprovante de pagamento (foto/PDF); base64 infla ~33% o corpo da requisicao,
+    // por isso o teto e conservador em relacao ao limite do Tomcat (15MB).
+    private static final int MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 
     private final SaleRepository saleRepository;
     private final CustomerRepository customerRepository;
@@ -80,12 +87,15 @@ public class SaleService {
 
     @Transactional
     public SaleResponse create(CreateSaleRequest request, AppUser currentUser) {
-        Customer customer = customerRepository.findById(request.customerId())
-            .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado: " + request.customerId()));
+        Customer customer = null;
+        if (request.customerId() != null) {
+            customer = customerRepository.findById(request.customerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado: " + request.customerId()));
 
-        boolean isOwnCustomer = customer.getOwnerVendedor().getId().equals(currentUser.getId());
-        if (currentUser.getRole() != Role.ADMIN && !isOwnCustomer) {
-            throw new AccessDeniedException("Você só pode lançar vendas para os seus próprios clientes");
+            boolean isOwnCustomer = customer.getOwnerVendedor().getId().equals(currentUser.getId());
+            if (currentUser.getRole() != Role.ADMIN && !isOwnCustomer) {
+                throw new AccessDeniedException("Você só pode lançar vendas para os seus próprios clientes");
+            }
         }
 
         Instant saleDate = request.saleDate() != null ? request.saleDate() : Instant.now();
@@ -99,11 +109,17 @@ public class SaleService {
             .orElse(BigDecimal.ZERO);
         sale.setCommissionRateApplied(commissionRate);
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subtotal = BigDecimal.ZERO;
         for (SaleItemRequest itemRequest : request.items()) {
-            total = total.add(addItem(sale, itemRequest));
+            subtotal = subtotal.add(addItem(sale, itemRequest));
         }
-        sale.setTotalAmount(total);
+
+        BigDecimal discount = request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO;
+        if (discount.compareTo(subtotal) > 0) {
+            throw new IllegalArgumentException("Desconto não pode ser maior que o total da venda");
+        }
+        sale.setDiscountAmount(discount);
+        sale.setTotalAmount(subtotal.subtract(discount));
 
         return SaleResponse.from(saleRepository.save(sale));
     }
@@ -169,6 +185,13 @@ public class SaleService {
         Payment payment = new Payment(
             sale, sale.getTotalAmount(), Instant.now(), request.paymentMethod(), currentUser, request.notes()
         );
+        if (StringUtils.hasText(request.attachmentBase64())) {
+            payment.setAttachment(
+                decodeAttachment(request.attachmentBase64()),
+                request.attachmentFileName(),
+                request.attachmentMimeType()
+            );
+        }
         paymentRepository.save(payment);
 
         sale.setStatus(SaleStatus.PAID);
@@ -249,5 +272,34 @@ public class SaleService {
     private Sale findSale(UUID id) {
         return saleRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public PaymentAttachmentResponse getPaymentAttachment(UUID saleId, UUID paymentId, AppUser currentUser) {
+        Sale sale = findSale(saleId);
+        assertOwnership(sale, currentUser);
+
+        Payment payment = paymentRepository.findById(paymentId)
+            .filter(p -> p.getSale().getId().equals(saleId))
+            .orElseThrow(() -> new ResourceNotFoundException("Pagamento não encontrado: " + paymentId));
+
+        if (payment.getAttachmentData() == null) {
+            throw new ResourceNotFoundException("Este pagamento não tem comprovante anexado");
+        }
+
+        return PaymentAttachmentResponse.from(payment);
+    }
+
+    private byte[] decodeAttachment(String base64) {
+        byte[] data;
+        try {
+            data = Base64.getDecoder().decode(base64);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Anexo inválido");
+        }
+        if (data.length > MAX_ATTACHMENT_BYTES) {
+            throw new IllegalArgumentException("Anexo muito grande (máximo 8 MB)");
+        }
+        return data;
     }
 }

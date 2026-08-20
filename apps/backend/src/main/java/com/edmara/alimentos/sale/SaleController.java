@@ -1,5 +1,6 @@
 package com.edmara.alimentos.sale;
 
+import com.edmara.alimentos.payment.dto.PaymentAttachmentResponse;
 import com.edmara.alimentos.payment.dto.PaymentResponse;
 import com.edmara.alimentos.payment.dto.RegisterPaymentRequest;
 import com.edmara.alimentos.sale.dto.CreateSaleRequest;
@@ -89,5 +90,14 @@ public class SaleController {
         @AuthenticationPrincipal AppUser currentUser
     ) {
         return saleService.registerPayment(id, request, currentUser);
+    }
+
+    @GetMapping("/{id}/payments/{paymentId}/attachment")
+    public PaymentAttachmentResponse getPaymentAttachment(
+        @PathVariable UUID id,
+        @PathVariable UUID paymentId,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return saleService.getPaymentAttachment(id, paymentId, currentUser);
     }
 }

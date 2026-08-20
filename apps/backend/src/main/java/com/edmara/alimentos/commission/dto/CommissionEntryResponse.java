@@ -21,7 +21,7 @@ public record CommissionEntryResponse(
             sale.getId(),
             sale.getVendedor().getId(),
             sale.getVendedor().getName(),
-            sale.getCustomer().getName(),
+            sale.getCustomer() != null ? sale.getCustomer().getName() : "Consumidor",
             sale.getSaleDate(),
             sale.getTotalAmount(),
             sale.getCommissionRateApplied(),

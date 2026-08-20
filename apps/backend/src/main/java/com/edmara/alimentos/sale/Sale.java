@@ -27,8 +27,8 @@ public class Sale extends BaseEntity {
     @JoinColumn(name = "vendedor_id", nullable = false)
     private AppUser vendedor;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "customer_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "customer_id", nullable = true)
     private Customer customer;
 
     @Column(name = "sale_date", nullable = false)
@@ -40,6 +40,9 @@ public class Sale extends BaseEntity {
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
+
+    @Column(name = "discount_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @Column(name = "commission_rate_applied", precision = 5, scale = 2)
     private BigDecimal commissionRateApplied;
@@ -98,6 +101,14 @@ public class Sale extends BaseEntity {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
     }
 
     public BigDecimal getCommissionRateApplied() {

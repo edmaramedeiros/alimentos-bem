@@ -12,7 +12,9 @@ public record PaymentResponse(
     Instant paymentDate,
     PaymentMethod paymentMethod,
     String registeredByName,
-    String notes
+    String notes,
+    boolean hasAttachment,
+    String attachmentFileName
 ) {
 
     public static PaymentResponse from(Payment payment) {
@@ -22,7 +24,9 @@ public record PaymentResponse(
             payment.getPaymentDate(),
             payment.getPaymentMethod(),
             payment.getRegisteredBy().getName(),
-            payment.getNotes()
+            payment.getNotes(),
+            payment.getAttachmentData() != null,
+            payment.getAttachmentFileName()
         );
     }
 }

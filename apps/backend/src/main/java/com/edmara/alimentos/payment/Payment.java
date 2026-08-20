@@ -13,6 +13,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "payment")
@@ -38,6 +40,16 @@ public class Payment extends BaseEntity {
 
     @Column(columnDefinition = "text")
     private String notes;
+
+    @JdbcTypeCode(SqlTypes.VARBINARY)
+    @Column(name = "attachment_data")
+    private byte[] attachmentData;
+
+    @Column(name = "attachment_file_name")
+    private String attachmentFileName;
+
+    @Column(name = "attachment_mime_type")
+    private String attachmentMimeType;
 
     protected Payment() {
         // JPA
@@ -74,5 +86,23 @@ public class Payment extends BaseEntity {
 
     public String getNotes() {
         return notes;
+    }
+
+    public byte[] getAttachmentData() {
+        return attachmentData;
+    }
+
+    public String getAttachmentFileName() {
+        return attachmentFileName;
+    }
+
+    public String getAttachmentMimeType() {
+        return attachmentMimeType;
+    }
+
+    public void setAttachment(byte[] attachmentData, String attachmentFileName, String attachmentMimeType) {
+        this.attachmentData = attachmentData;
+        this.attachmentFileName = attachmentFileName;
+        this.attachmentMimeType = attachmentMimeType;
     }
 }

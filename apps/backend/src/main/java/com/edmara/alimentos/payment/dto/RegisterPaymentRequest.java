@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotNull;
 
 public record RegisterPaymentRequest(
     @NotNull(message = "Forma de pagamento é obrigatória") PaymentMethod paymentMethod,
-    String notes
+    String notes,
+    String attachmentBase64,
+    String attachmentFileName,
+    String attachmentMimeType
 ) {
 }

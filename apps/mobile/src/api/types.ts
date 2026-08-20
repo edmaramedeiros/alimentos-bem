@@ -65,7 +65,7 @@ export type SaleSummary = {
   id: string;
   vendedorId: string;
   vendedorName: string;
-  customerId: string;
+  customerId: string | null;
   customerName: string;
   saleDate: string;
   status: SaleStatus;
@@ -76,6 +76,7 @@ export type SaleSummary = {
 export type CommissionStatus = 'PENDING' | 'EARNED';
 
 export type Sale = SaleSummary & {
+  discountAmount: number;
   commissionRateApplied: number | null;
   commissionAmount: number | null;
   commissionStatus: CommissionStatus;
@@ -91,6 +92,14 @@ export type Payment = {
   paymentMethod: PaymentMethod;
   registeredByName: string;
   notes: string | null;
+  hasAttachment: boolean;
+  attachmentFileName: string | null;
+};
+
+export type PaymentAttachment = {
+  fileName: string;
+  mimeType: string;
+  dataBase64: string;
 };
 
 export type CommissionRateEntry = {

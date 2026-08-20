@@ -22,9 +22,11 @@ export default function NewSaleScreen() {
   const queryClient = useQueryClient();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [isConsumer, setIsConsumer] = useState(false);
   const [customerPickerVisible, setCustomerPickerVisible] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [discountText, setDiscountText] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -60,21 +62,38 @@ export default function NewSaleScreen() {
     [products, quantities]
   );
 
-  const total = useMemo(
+  const subtotal = useMemo(
     () => selectedItems.reduce((sum, product) => sum + product.currentPrice * (quantities[product.id] ?? 0), 0),
     [selectedItems, quantities]
   );
 
-  const canSubmit = !!customer && selectedItems.length > 0 && !submitting;
+  const discount = Number(discountText.replace(',', '.')) || 0;
+  const total = Math.max(0, subtotal - discount);
+  const discountValid = discount >= 0 && discount <= subtotal;
+
+  const canSubmit = (isConsumer || !!customer) && selectedItems.length > 0 && discountValid && !submitting;
+
+  const selectCustomer = (c: Customer) => {
+    setCustomer(c);
+    setIsConsumer(false);
+    setCustomerPickerVisible(false);
+  };
+
+  const selectConsumer = () => {
+    setCustomer(null);
+    setIsConsumer(true);
+    setCustomerPickerVisible(false);
+  };
 
   const onSubmit = async () => {
-    if (!customer || selectedItems.length === 0) return;
+    if ((!customer && !isConsumer) || selectedItems.length === 0 || !discountValid) return;
     setSubmitting(true);
     setServerError(null);
     try {
       const sale = await createSale({
-        customerId: customer.id,
+        customerId: isConsumer ? null : (customer?.id ?? null),
         items: selectedItems.map((product) => ({ productId: product.id, quantity: quantities[product.id] })),
+        discountAmount: discount > 0 ? discount : undefined,
       });
       await queryClient.invalidateQueries({ queryKey: ['sales'] });
       router.replace(`/sales/${sale.id}`);
@@ -99,6 +118,13 @@ export default function NewSaleScreen() {
           title={customer.name}
           description={[customer.phone, customer.city].filter(Boolean).join(' · ') || undefined}
           left={(props) => <List.Icon {...props} icon="account" />}
+          onPress={openCustomerPicker}
+        />
+      ) : isConsumer ? (
+        <List.Item
+          title="Consumidor"
+          description="Venda sem cliente identificado"
+          left={(props) => <List.Icon {...props} icon="account-question" />}
           onPress={openCustomerPicker}
         />
       ) : (
@@ -166,6 +192,35 @@ export default function NewSaleScreen() {
         ))
       )}
 
+      <View style={styles.subtotalRow}>
+        <Text variant="bodyMedium" style={styles.muted}>
+          Subtotal
+        </Text>
+        <Text variant="bodyMedium" style={styles.muted}>
+          {formatCurrencyBRL(subtotal)}
+        </Text>
+      </View>
+
+      <View style={styles.discountRow}>
+        <Text variant="bodyMedium" style={styles.muted}>
+          Desconto
+        </Text>
+        <TextInput
+          mode="outlined"
+          dense
+          keyboardType="decimal-pad"
+          placeholder="0,00"
+          value={discountText}
+          onChangeText={setDiscountText}
+          style={styles.discountInput}
+          contentStyle={styles.discountInputContent}
+          error={!discountValid}
+        />
+      </View>
+      <HelperText type="error" visible={!discountValid}>
+        Desconto não pode ser maior que o subtotal da venda.
+      </HelperText>
+
       <View style={styles.totalRow}>
         <Text variant="titleMedium">Total</Text>
         <Text variant="titleMedium">{formatCurrencyBRL(total)}</Text>
@@ -185,6 +240,13 @@ export default function NewSaleScreen() {
           <View style={styles.searchWrapper}>
             <Searchbar placeholder="Buscar por nome ou telefone" value={customerSearch} onChangeText={setCustomerSearch} />
           </View>
+          <List.Item
+            title="Consumidor"
+            description="Venda sem cliente identificado"
+            left={(props) => <List.Icon {...props} icon="account-question" />}
+            onPress={selectConsumer}
+            style={styles.consumerOption}
+          />
           <Dialog.ScrollArea style={styles.dialogScroll}>
             {customersQuery.data?.length ? (
               <FlatList
@@ -194,10 +256,7 @@ export default function NewSaleScreen() {
                   <List.Item
                     title={c.name}
                     description={[c.phone, c.city].filter(Boolean).join(' · ') || undefined}
-                    onPress={() => {
-                      setCustomer(c);
-                      setCustomerPickerVisible(false);
-                    }}
+                    onPress={() => selectCustomer(c)}
                   />
                 )}
                 ListEmptyComponent={<Text style={styles.emptyDialog}>Nenhum cliente encontrado.</Text>}
@@ -235,10 +294,15 @@ const styles = StyleSheet.create({
   qtyInput: { width: 56, height: 40, textAlign: 'center' },
   qtyInputContent: { textAlign: 'center' },
   subtotal: { fontWeight: '600', minWidth: 90, textAlign: 'right' },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#ECCFB1' },
+  subtotalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
+  discountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  discountInput: { width: 120, height: 40 },
+  discountInputContent: { textAlign: 'right' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#ECCFB1' },
   submitButton: { marginTop: 16, marginBottom: 32 },
   dialog: { maxHeight: '80%' },
   searchWrapper: { paddingHorizontal: 24, paddingBottom: 8 },
+  consumerOption: { borderBottomWidth: 1, borderBottomColor: '#ECCFB1' },
   dialogScroll: { maxHeight: 400 },
   emptyDialog: { padding: 16, opacity: 0.6 },
   muted: { opacity: 0.7 },

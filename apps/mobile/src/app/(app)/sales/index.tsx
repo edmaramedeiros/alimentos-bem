@@ -10,6 +10,10 @@ import { formatCurrencyBRL, formatDateTimeBR, saleStatusLabel } from '@/utils/fo
 
 const STATUS_OPTIONS: SaleStatus[] = ['AWAITING_DELIVERY', 'AWAITING_PAYMENT', 'PAID', 'CANCELLED'];
 
+// Vendas para "Consumidor" têm customerId null; usa um sentinel distinto de null
+// (que já significa "sem filtro") para poder filtrar só por elas no menu.
+const CONSUMER_FILTER = '__consumer__';
+
 export default function SalesScreen() {
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
@@ -30,15 +34,28 @@ export default function SalesScreen() {
 
   const customerOptions = useMemo(() => {
     const byId = new Map<string, string>();
+    let hasConsumerSale = false;
     for (const sale of data ?? []) {
-      byId.set(sale.customerId, sale.customerName);
+      if (sale.customerId) {
+        byId.set(sale.customerId, sale.customerName);
+      } else {
+        hasConsumerSale = true;
+      }
     }
-    return Array.from(byId.entries()).sort(([, a], [, b]) => a.localeCompare(b, 'pt-BR'));
+    const options = Array.from(byId.entries()).sort(([, a], [, b]) => a.localeCompare(b, 'pt-BR'));
+    if (hasConsumerSale) {
+      options.push([CONSUMER_FILTER, 'Consumidor']);
+    }
+    return options;
   }, [data]);
 
   const filteredSales = useMemo(() => {
     return (data ?? []).filter((sale) => {
-      if (customerFilter && sale.customerId !== customerFilter) return false;
+      if (customerFilter === CONSUMER_FILTER) {
+        if (sale.customerId !== null) return false;
+      } else if (customerFilter && sale.customerId !== customerFilter) {
+        return false;
+      }
       if (statusFilter && sale.status !== statusFilter) return false;
       return true;
     });

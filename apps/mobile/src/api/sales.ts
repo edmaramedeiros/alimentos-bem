@@ -1,5 +1,13 @@
 import { apiRequest } from '@/api/client';
-import type { DailySalesPoint, MonthlySalesPoint, Payment, PaymentMethod, Sale, SaleSummary } from '@/api/types';
+import type {
+  DailySalesPoint,
+  MonthlySalesPoint,
+  Payment,
+  PaymentAttachment,
+  PaymentMethod,
+  Sale,
+  SaleSummary,
+} from '@/api/types';
 
 export function listSales(): Promise<SaleSummary[]> {
   return apiRequest<SaleSummary[]>('/api/sales');
@@ -25,8 +33,9 @@ export type CreateSaleItemInput = {
 };
 
 export type CreateSaleInput = {
-  customerId: string;
+  customerId: string | null;
   items: CreateSaleItemInput[];
+  discountAmount?: number;
 };
 
 export function createSale(input: CreateSaleInput): Promise<Sale> {
@@ -45,9 +54,21 @@ export function listPayments(saleId: string): Promise<Payment[]> {
   return apiRequest<Payment[]>(`/api/sales/${saleId}/payments`);
 }
 
-export function registerPayment(saleId: string, paymentMethod: PaymentMethod, notes?: string): Promise<Sale> {
+export type RegisterPaymentInput = {
+  paymentMethod: PaymentMethod;
+  notes?: string;
+  attachmentBase64?: string;
+  attachmentFileName?: string;
+  attachmentMimeType?: string;
+};
+
+export function registerPayment(saleId: string, input: RegisterPaymentInput): Promise<Sale> {
   return apiRequest<Sale>(`/api/sales/${saleId}/payments`, {
     method: 'POST',
-    body: { paymentMethod, notes },
+    body: input,
   });
+}
+
+export function getPaymentAttachment(saleId: string, paymentId: string): Promise<PaymentAttachment> {
+  return apiRequest<PaymentAttachment>(`/api/sales/${saleId}/payments/${paymentId}/attachment`);
 }
