@@ -12,9 +12,9 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#70754D" />
         <title>Edmara Medeiros - alimentos do bem</title>
 
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/sistema/manifest.json" />
+        <link rel="icon" href="/sistema/favicon.png" />
+        <link rel="apple-touch-icon" href="/sistema/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Edmara Medeiros" />
@@ -27,7 +27,7 @@ export default function Root({ children }: PropsWithChildren) {
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
-                  navigator.serviceWorker.register('/sw.js').catch(function () {});
+                  navigator.serviceWorker.register('/sistema/sw.js').catch(function () {});
                 });
               }
             `,

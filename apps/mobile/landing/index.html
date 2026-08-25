@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+<title>Edmara Medeiros - alimentos do bem</title>
+<meta name="description" content="Castanhas, granolas e snacks saudáveis feitos à mão, sem conservantes. Peça pelo WhatsApp ou veja nosso cardápio completo." />
+<meta name="theme-color" content="#70754D" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Edmara Medeiros - alimentos do bem" />
+<meta property="og:description" content="Castanhas, granolas e snacks saudáveis feitos à mão, sem conservantes. Peça pelo WhatsApp ou veja nosso cardápio completo." />
+<meta property="og:image" content="/og-image.png" />
+
+<link rel="icon" href="/favicon.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+
+<style>
+  @font-face {
+    font-family: 'Bailleul';
+    src: url('/fonts/bailleul-roman.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Bailleul';
+    src: url('/fonts/bailleul-italic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Bailleul';
+    src: url('/fonts/bailleul-bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --olive-dark: #70754D;
+    --olive-lime: #C6C664;
+    --cream: #F4EFEB;
+    --tan: #ECCFB1;
+    --terracotta: #DC9251;
+    --orange: #FE9150;
+    --brick: #A74C39;
+    --ink: #2C2C24;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Poppins', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  img { max-width: 100%; display: block; }
+
+  h1, h2, h3 {
+    font-family: 'Bailleul', Georgia, serif;
+    font-weight: 400;
+    margin: 0;
+    line-height: 1.15;
+  }
+
+  .eyebrow {
+    font-family: 'Bailleul', Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--olive-lime);
+    letter-spacing: 0.02em;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    border-radius: 999px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary {
+    background: var(--terracotta);
+    color: #fff;
+    box-shadow: 0 10px 24px -8px rgba(220, 146, 81, 0.6);
+  }
+  .btn-primary:hover { background: var(--orange); box-shadow: 0 14px 28px -8px rgba(254, 145, 80, 0.55); }
+  .btn-outline {
+    background: transparent;
+    color: var(--cream);
+    border-color: rgba(244, 239, 235, 0.5);
+  }
+  .btn-outline:hover { background: rgba(244, 239, 235, 0.12); border-color: var(--cream); }
+  .btn-dark {
+    background: var(--olive-dark);
+    color: var(--cream);
+  }
+  .btn-dark:hover { background: #5c6040; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(165deg, var(--olive-dark) 0%, #5f6440 100%);
+    color: var(--cream);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(198, 198, 100, 0.16), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(220, 146, 81, 0.18), transparent 45%);
+    pointer-events: none;
+  }
+  .hero-inner {
+    position: relative;
+    padding: 72px 24px 88px;
+    text-align: center;
+  }
+  .hero .logo {
+    width: min(360px, 78vw);
+    margin: 0 auto 28px;
+  }
+  .hero h1 {
+    font-size: clamp(1.9rem, 4.4vw, 3.1rem);
+    max-width: 720px;
+    margin: 0 auto 18px;
+  }
+  .hero p.lead {
+    font-size: 1.1rem;
+    max-width: 560px;
+    margin: 0 auto 40px;
+    opacity: 0.92;
+    line-height: 1.6;
+  }
+  .hero-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+  .scroll-hint {
+    margin-top: 56px;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Story */
+  .section { padding: 88px 24px; }
+  .story {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: center;
+    max-width: 780px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .story h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); margin-bottom: 20px; }
+  .story p { font-size: 1.05rem; line-height: 1.75; color: #4a4a3c; }
+  .badges {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+  }
+  .badge {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: var(--tan);
+    color: #6b4a26;
+  }
+
+  /* Menu / cardápio */
+  .menu-section {
+    background: linear-gradient(135deg, var(--terracotta), var(--brick));
+    color: #fff;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .menu-section .leaf-pattern {
+    position: absolute;
+    inset: 0;
+    opacity: 0.12;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-width='2'%3E%3Cpath d='M20 60c0-16 13-29 29-29s29 13 29 29-13 29-29 29-29-13-29-29z'/%3E%3Cpath d='M20 60c0 16 13 29 29 29'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 140px 140px;
+    pointer-events: none;
+  }
+  .menu-section .inner { position: relative; max-width: 640px; margin: 0 auto; }
+  .menu-section h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: #fff; margin-bottom: 16px; }
+  .menu-section p { font-size: 1.05rem; line-height: 1.7; opacity: 0.95; margin-bottom: 32px; }
+
+  /* Contact */
+  .contact {
+    text-align: center;
+  }
+  .contact h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); margin-bottom: 14px; }
+  .contact p.sub { color: #5c5c4e; margin-bottom: 36px; font-size: 1.05rem; }
+  .contact-card {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    background: #fff;
+    border: 1px solid rgba(112, 117, 77, 0.15);
+    border-radius: 28px;
+    padding: 40px 48px;
+    box-shadow: 0 24px 48px -24px rgba(44, 44, 36, 0.18);
+  }
+  .phone-number {
+    font-family: 'Bailleul', Georgia, serif;
+    font-size: 1.6rem;
+    color: var(--olive-dark);
+  }
+  .social-link {
+    color: var(--brick);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+  .social-link:hover { text-decoration: underline; }
+
+  footer {
+    padding: 32px 24px 40px;
+    text-align: center;
+    color: #7a7a6a;
+    font-size: 0.85rem;
+    background: var(--cream);
+  }
+
+  .wa-icon { width: 22px; height: 22px; flex-shrink: 0; }
+
+  @media (min-width: 720px) {
+    .hero-inner { padding: 104px 24px 120px; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-inner wrap">
+    <img class="logo" src="/logo.png" alt="Edmara Medeiros - alimentos do bem" />
+    <h1>Castanhas, granolas e snacks feitos à mão, com ingredientes de verdade.</h1>
+    <p class="lead">Sem conservantes. Sem pressa. Só cuidado artesanal, do jeito que a gente faz desde 2018.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="https://wa.me/5566999833707?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais%20sobre%20os%20produtos." target="_blank" rel="noopener">
+        <svg class="wa-icon" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16.003 3C9.373 3 4 8.373 4 15.003c0 2.65.87 5.1 2.34 7.09L4.9 27.1a1 1 0 0 0 1.23 1.23l5.14-1.44a11.94 11.94 0 0 0 4.73.98h.01c6.63 0 12-5.373 12-12.003C28.003 8.373 22.633 3 16.003 3Zm0 21.86h-.01a9.86 9.86 0 0 1-5.02-1.37l-.36-.21-3.5.98.99-3.42-.24-.37a9.85 9.85 0 0 1-1.51-5.26c0-5.46 4.45-9.9 9.92-9.9 2.65 0 5.13 1.03 7 2.9a9.83 9.83 0 0 1 2.9 7.01c0 5.47-4.45 9.92-9.92 9.92Zm5.44-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.65-2.05-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.06 2.87 1.21 3.07c.15.2 2.09 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.35.2 1.86.12.57-.08 1.76-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z"/></svg>
+        Peça pelo WhatsApp
+      </a>
+      <a class="btn btn-outline" href="https://drive.google.com/file/d/1cNZBQ7_j3SHMrFKYIyOy2F_I5x6nKs7I/view?usp=drive_link" target="_blank" rel="noopener">
+        Ver cardápio
+      </a>
+    </div>
+    <div class="scroll-hint">Conheça a nossa história ↓</div>
+  </div>
+</section>
+
+<section class="section story">
+  <div>
+    <p class="eyebrow">Desde 2018</p>
+    <h2>Uma marca que nasceu para equilibrar vida e trabalho</h2>
+    <p>
+      Depois de 13 anos dedicados a uma empresa, Edmara decidiu se dedicar mais ao filho — e encontrou
+      na venda de castanha-do-pará e na criação de uma granola saudável uma nova paixão. Com ingredientes
+      de qualidade e sem conservantes, os produtos conquistaram clientes pelo boca a boca. Hoje, Edmara
+      continua fazendo o que ama, conciliando a presença com os filhos e oferecendo produtos cuidadosamente
+      preparados.
+    </p>
+    <div class="badges">
+      <span class="badge">Sem conservantes</span>
+      <span class="badge">Feito à mão</span>
+      <span class="badge">Ingredientes de qualidade</span>
+    </div>
+  </div>
+</section>
+
+<section class="section menu-section">
+  <div class="leaf-pattern"></div>
+  <div class="inner">
+    <h2>Conheça nossos produtos</h2>
+    <p>Veja o cardápio completo com todos os produtos e preços atualizados.</p>
+    <a class="btn btn-dark" href="https://drive.google.com/file/d/1cNZBQ7_j3SHMrFKYIyOy2F_I5x6nKs7I/view?usp=drive_link" target="_blank" rel="noopener">
+      Abrir cardápio completo
+    </a>
+  </div>
+</section>
+
+<section class="section contact wrap">
+  <h2>Fale com a gente</h2>
+  <p class="sub">Pedidos, dúvidas ou parcerias — chama no WhatsApp.</p>
+  <div class="contact-card">
+    <a class="btn btn-primary" href="https://wa.me/5566999833707?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais%20sobre%20os%20produtos." target="_blank" rel="noopener">
+      <svg class="wa-icon" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16.003 3C9.373 3 4 8.373 4 15.003c0 2.65.87 5.1 2.34 7.09L4.9 27.1a1 1 0 0 0 1.23 1.23l5.14-1.44a11.94 11.94 0 0 0 4.73.98h.01c6.63 0 12-5.373 12-12.003C28.003 8.373 22.633 3 16.003 3Zm0 21.86h-.01a9.86 9.86 0 0 1-5.02-1.37l-.36-.21-3.5.98.99-3.42-.24-.37a9.85 9.85 0 0 1-1.51-5.26c0-5.46 4.45-9.9 9.92-9.9 2.65 0 5.13 1.03 7 2.9a9.83 9.83 0 0 1 2.9 7.01c0 5.47-4.45 9.92-9.92 9.92Zm5.44-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.65-2.05-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.06 2.87 1.21 3.07c.15.2 2.09 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.35.2 1.86.12.57-.08 1.76-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z"/></svg>
+      Chamar no WhatsApp
+    </a>
+    <div class="phone-number">(66) 99983-3707</div>
+    <a class="social-link" href="https://instagram.com/edmaramedeirosoficial" target="_blank" rel="noopener">@edmaramedeirosoficial</a>
+  </div>
+</section>
+
+<footer>
+  © <span id="year"></span> Edmara Medeiros — alimentos do bem
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>

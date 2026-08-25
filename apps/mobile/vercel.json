@@ -3,13 +3,16 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/products/new", "destination": "/products/new.html" },
-    { "source": "/customers/new", "destination": "/customers/new.html" },
-    { "source": "/sales/new", "destination": "/sales/new.html" },
-    { "source": "/users/new", "destination": "/users/new.html" },
-    { "source": "/products/:id", "destination": "/products/[id].html" },
-    { "source": "/customers/:id", "destination": "/customers/[id].html" },
-    { "source": "/sales/:id", "destination": "/sales/[id].html" },
-    { "source": "/users/:id", "destination": "/users/[id].html" }
+    { "source": "/sistema/products/new", "destination": "/sistema/products/new.html" },
+    { "source": "/sistema/customers/new", "destination": "/sistema/customers/new.html" },
+    { "source": "/sistema/sales/new", "destination": "/sistema/sales/new.html" },
+    { "source": "/sistema/users/new", "destination": "/sistema/users/new.html" },
+    { "source": "/sistema/whatsapp/new", "destination": "/sistema/whatsapp/new.html" },
+    { "source": "/sistema/expenses/new", "destination": "/sistema/expenses/new.html" },
+    { "source": "/sistema/products/:id", "destination": "/sistema/products/[id].html" },
+    { "source": "/sistema/customers/:id", "destination": "/sistema/customers/[id].html" },
+    { "source": "/sistema/sales/:id", "destination": "/sistema/sales/[id].html" },
+    { "source": "/sistema/users/:id", "destination": "/sistema/users/[id].html" },
+    { "source": "/sistema/whatsapp/:id", "destination": "/sistema/whatsapp/[id].html" }
   ]
 }
