@@ -90,6 +90,18 @@ export default function NewCampaignScreen() {
         onChangeText={setMessage}
         style={styles.input}
       />
+      <Button
+        mode="text"
+        compact
+        icon="account-plus"
+        onPress={() => setMessage((current) => (current && !current.endsWith(' ') ? `${current} {{nome}}` : `${current}{{nome}}`))}
+        style={styles.insertNameButton}
+      >
+        Inserir nome do cliente
+      </Button>
+      <HelperText type="info" visible>
+        Use {'{{nome}}'} na mensagem para que cada cliente receba com o próprio primeiro nome, como em uma mala direta.
+      </HelperText>
 
       <Text variant="titleMedium" style={styles.sectionTitle}>
         Anexo (opcional)
@@ -165,6 +177,7 @@ const styles = StyleSheet.create({
   container: { padding: 24, paddingBottom: 48 },
   title: { marginBottom: 16 },
   input: { marginTop: 8 },
+  insertNameButton: { alignSelf: 'flex-start', marginTop: 2 },
   sectionTitle: { marginTop: 24, marginBottom: 4 },
   pickButton: { alignSelf: 'flex-start', marginTop: 8 },
   attachmentRow: {

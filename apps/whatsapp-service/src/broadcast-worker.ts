@@ -20,7 +20,17 @@ type BroadcastRow = {
 type RecipientRow = {
   id: string;
   phone: string;
+  customer_name: string;
 };
+
+// Igual a mala direta do Word: {{nome}} na mensagem vira o primeiro nome do
+// cliente na hora do envio (tolera espaços e maiúsculas/minúsculas: {{ Nome }}).
+const NAME_PLACEHOLDER = /\{\{\s*nome\s*\}\}/gi;
+
+function personalizeMessage(message: string, customerName: string): string {
+  const firstName = customerName.trim().split(/\s+/)[0] ?? customerName;
+  return message.replace(NAME_PLACEHOLDER, firstName);
+}
 
 async function dispatchNextBroadcast(): Promise<void> {
   if (dispatching) return;
@@ -42,7 +52,7 @@ async function dispatchNextBroadcast(): Promise<void> {
     await pool.query("UPDATE whatsapp_broadcast SET status = 'SENDING', updated_at = now() WHERE id = $1", [broadcast.id]);
 
     const { rows: recipients } = await pool.query<RecipientRow>(
-      `SELECT id, phone FROM whatsapp_broadcast_recipient WHERE broadcast_id = $1 AND status = 'QUEUED' ORDER BY created_at ASC`,
+      `SELECT id, phone, customer_name FROM whatsapp_broadcast_recipient WHERE broadcast_id = $1 AND status = 'QUEUED' ORDER BY created_at ASC`,
       [broadcast.id]
     );
 
@@ -61,7 +71,8 @@ async function dispatchNextBroadcast(): Promise<void> {
       if (!getStatus(vendedorId).connected) break;
 
       try {
-        await sendCampaignMessage(vendedorId, recipient.phone, broadcast.message, attachment);
+        const message = personalizeMessage(broadcast.message, recipient.customer_name);
+        await sendCampaignMessage(vendedorId, recipient.phone, message, attachment);
         await pool.query(
           "UPDATE whatsapp_broadcast_recipient SET status = 'SENT', sent_at = now(), updated_at = now() WHERE id = $1",
           [recipient.id]
