@@ -4,12 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
 <title>Edmara Medeiros - alimentos do bem</title>
-<meta name="description" content="Castanhas, granolas e snacks saudáveis feitos à mão, sem conservantes. Peça pelo WhatsApp ou veja nosso cardápio completo." />
+<meta name="description" content="Castanhas e granolas saudáveis feitas à mão, sem conservantes. Peça pelo WhatsApp ou veja nosso cardápio completo." />
 <meta name="theme-color" content="#70754D" />
 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Edmara Medeiros - alimentos do bem" />
-<meta property="og:description" content="Castanhas, granolas e snacks saudáveis feitos à mão, sem conservantes. Peça pelo WhatsApp ou veja nosso cardápio completo." />
+<meta property="og:description" content="Castanhas e granolas saudáveis feitas à mão, sem conservantes. Peça pelo WhatsApp ou veja nosso cardápio completo." />
 <meta property="og:image" content="/og-image.png" />
 
 <link rel="icon" href="/favicon.png" />
@@ -201,8 +201,8 @@
 
   /* Menu / cardápio */
   .menu-section {
-    background: linear-gradient(135deg, var(--terracotta), var(--brick));
-    color: #fff;
+    background-color: var(--tan);
+    color: var(--ink);
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -210,14 +210,21 @@
   .menu-section .leaf-pattern {
     position: absolute;
     inset: 0;
-    opacity: 0.12;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-width='2'%3E%3Cpath d='M20 60c0-16 13-29 29-29s29 13 29 29-13 29-29 29-29-13-29-29z'/%3E%3Cpath d='M20 60c0 16 13 29 29 29'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: 140px 140px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 84 84'%3E%3Cg fill='%23DC9251'%3E%3Cg transform='translate(0,0)'%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(90)'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(180)'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(270)'/%3E%3C/g%3E%3Cg transform='translate(84,0)'%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(90)'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(180)'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(270)'/%3E%3C/g%3E%3Cg transform='translate(0,84)'%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(90)'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(180)'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(270)'/%3E%3C/g%3E%3Cg transform='translate(84,84)'%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(90)'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(180)'/%3E%3Cpath d='M0,0 C13,-1 22,-11 21,-26 C11,-21 2,-12 0,0 Z' transform='rotate(270)'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-size: 84px 84px;
     pointer-events: none;
   }
-  .menu-section .inner { position: relative; max-width: 640px; margin: 0 auto; }
-  .menu-section h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: #fff; margin-bottom: 16px; }
-  .menu-section p { font-size: 1.05rem; line-height: 1.7; opacity: 0.95; margin-bottom: 32px; }
+  .menu-section .inner {
+    position: relative;
+    max-width: 640px;
+    margin: 0 auto;
+    background: rgba(244, 239, 235, 0.88);
+    border-radius: 28px;
+    padding: 48px 40px;
+    box-shadow: 0 24px 48px -24px rgba(44, 44, 36, 0.18);
+  }
+  .menu-section h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--brick); margin-bottom: 16px; }
+  .menu-section p { font-size: 1.05rem; line-height: 1.7; color: #4a4a3c; margin-bottom: 32px; }
 
   /* Contact */
   .contact {
@@ -269,7 +276,7 @@
 <section class="hero">
   <div class="hero-inner wrap">
     <img class="logo" src="/logo.png" alt="Edmara Medeiros - alimentos do bem" />
-    <h1>Castanhas, granolas e snacks feitos à mão, com ingredientes de verdade.</h1>
+    <h1>Castanhas e granolas feitas à mão, com ingredientes de verdade.</h1>
     <p class="lead">Sem conservantes. Sem pressa. Só cuidado artesanal, do jeito que a gente faz desde 2018.</p>
     <div class="hero-ctas">
       <a class="btn btn-primary" href="https://wa.me/5566999833707?text=Ol%C3%A1!%20Vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais%20sobre%20os%20produtos." target="_blank" rel="noopener">
