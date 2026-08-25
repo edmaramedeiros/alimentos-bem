@@ -3,32 +3,39 @@ import type { Pool } from "pg";
 
 // Estado de autenticacao do Baileys persistido no Postgres (tabela whatsapp_session),
 // em vez de arquivo local, porque o disco do Render (free tier) e efemero e perderiamos
-// a sessao pareada a cada deploy/restart.
+// a sessao pareada a cada deploy/restart. Uma sessao por vendedor_id: cada usuario tem
+// seu proprio numero de WhatsApp vinculado, nao mais um numero compartilhado.
 
-async function readValue(pool: Pool, key: string): Promise<unknown> {
-  const result = await pool.query("SELECT value FROM whatsapp_session WHERE key = $1", [key]);
+async function readValue(pool: Pool, vendedorId: string, key: string): Promise<unknown> {
+  const result = await pool.query("SELECT value FROM whatsapp_session WHERE vendedor_id = $1 AND key = $2", [
+    vendedorId,
+    key,
+  ]);
   if (result.rowCount === 0) return null;
   return JSON.parse(result.rows[0].value, BufferJSON.reviver);
 }
 
-async function writeValue(pool: Pool, key: string, value: unknown): Promise<void> {
+async function writeValue(pool: Pool, vendedorId: string, key: string, value: unknown): Promise<void> {
   const serialized = JSON.stringify(value, BufferJSON.replacer);
   await pool.query(
-    `INSERT INTO whatsapp_session (key, value, updated_at) VALUES ($1, $2, now())
-     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
-    [key, serialized]
+    `INSERT INTO whatsapp_session (vendedor_id, key, value, updated_at) VALUES ($1, $2, $3, now())
+     ON CONFLICT (vendedor_id, key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    [vendedorId, key, serialized]
   );
 }
 
-async function deleteValue(pool: Pool, key: string): Promise<void> {
-  await pool.query("DELETE FROM whatsapp_session WHERE key = $1", [key]);
+async function deleteValue(pool: Pool, vendedorId: string, key: string): Promise<void> {
+  await pool.query("DELETE FROM whatsapp_session WHERE vendedor_id = $1 AND key = $2", [vendedorId, key]);
 }
 
-export async function usePostgresAuthState(pool: Pool): Promise<{
+export async function usePostgresAuthState(
+  pool: Pool,
+  vendedorId: string
+): Promise<{
   state: AuthenticationState;
   saveCreds: () => Promise<void>;
 }> {
-  const storedCreds = await readValue(pool, "creds");
+  const storedCreds = await readValue(pool, vendedorId, "creds");
   const creds: AuthenticationCreds = (storedCreds as AuthenticationCreds) ?? initAuthCreds();
 
   return {
@@ -39,7 +46,7 @@ export async function usePostgresAuthState(pool: Pool): Promise<{
           const data: { [id: string]: SignalDataTypeMap[typeof type] } = {};
           await Promise.all(
             ids.map(async (id) => {
-              const value = await readValue(pool, `${type}-${id}`);
+              const value = await readValue(pool, vendedorId, `${type}-${id}`);
               if (value !== null) {
                 data[id] = value as SignalDataTypeMap[typeof type];
               }
@@ -52,13 +59,23 @@ export async function usePostgresAuthState(pool: Pool): Promise<{
           for (const type of Object.keys(data) as (keyof SignalDataTypeMap)[]) {
             for (const id of Object.keys(data[type] ?? {})) {
               const value = data[type]?.[id];
-              tasks.push(value ? writeValue(pool, `${type}-${id}`, value) : deleteValue(pool, `${type}-${id}`));
+              tasks.push(
+                value ? writeValue(pool, vendedorId, `${type}-${id}`, value) : deleteValue(pool, vendedorId, `${type}-${id}`)
+              );
             }
           }
           await Promise.all(tasks);
         },
       },
     },
-    saveCreds: () => writeValue(pool, "creds", creds),
+    saveCreds: () => writeValue(pool, vendedorId, "creds", creds),
   };
+}
+
+/** IDs de vendedores que já têm uma sessão pareada salva (para reconectar no boot do serviço). */
+export async function listVendedorIdsWithSession(pool: Pool): Promise<string[]> {
+  const result = await pool.query<{ vendedor_id: string }>(
+    "SELECT DISTINCT vendedor_id FROM whatsapp_session WHERE key = 'creds'"
+  );
+  return result.rows.map((row) => row.vendedor_id);
 }

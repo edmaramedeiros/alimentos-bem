@@ -37,6 +37,9 @@ public class Customer extends BaseEntity {
     @Column(columnDefinition = "text")
     private String notes;
 
+    @Column(length = 150)
+    private String grupo;
+
     @Column(nullable = false)
     private boolean active = true;
 
@@ -120,6 +123,14 @@ public class Customer extends BaseEntity {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getGrupo() {
+        return grupo;
+    }
+
+    public void setGrupo(String grupo) {
+        this.grupo = grupo;
     }
 
     public boolean isActive() {

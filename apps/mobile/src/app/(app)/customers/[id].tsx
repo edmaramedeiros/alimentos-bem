@@ -30,6 +30,7 @@ export default function CustomerDetailScreen() {
         state: data.state || undefined,
         zip: data.zip || undefined,
         notes: data.notes || undefined,
+        grupo: data.grupo || undefined,
         whatsappOptIn: data.whatsappOptIn,
         active: customerQuery.data?.active ?? true,
       });
@@ -86,6 +87,7 @@ export default function CustomerDetailScreen() {
             state: customer.state ?? '',
             zip: customer.zip ?? '',
             notes: customer.notes ?? '',
+            grupo: customer.grupo ?? '',
             whatsappOptIn: customer.whatsappOptIn,
           }}
           onSubmit={onSubmit}
@@ -114,6 +116,7 @@ export default function CustomerDetailScreen() {
         description={[customer.addressLine, customer.city, customer.state, customer.zip].filter(Boolean).join(', ') || '—'}
       />
       <List.Item title="Observações" description={customer.notes ?? '—'} />
+      <List.Item title="Grupo" description={customer.grupo ?? '—'} />
       <List.Item title="Cadastrado por" description={customer.ownerVendedorName} />
 
       <Button mode="contained" onPress={() => setEditing(true)} style={styles.editButton}>

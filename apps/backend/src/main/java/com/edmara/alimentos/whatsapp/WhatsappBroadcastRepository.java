@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface WhatsappBroadcastRepository extends JpaRepository<WhatsappBroadcast, UUID> {
 
     List<WhatsappBroadcast> findAllByOrderByCreatedAtDesc();
+
+    List<WhatsappBroadcast> findByCreatedBy_IdOrderByCreatedAtDesc(UUID createdById);
 }

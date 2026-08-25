@@ -4,16 +4,17 @@ import { useCallback } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, FAB, List, Text } from 'react-native-paper';
 
-import { listUsers } from '@/api/users';
+import { listExpenses } from '@/api/expenses';
 import { RequireRole } from '@/components/require-role';
+import { expenseCategoryLabel, formatDateBR } from '@/utils/format';
 
-function UsersList() {
+function ExpensesList() {
   const queryClient = useQueryClient();
-  const { data, isLoading, error } = useQuery({ queryKey: ['users'], queryFn: listUsers });
+  const { data, isLoading, error } = useQuery({ queryKey: ['expenses'], queryFn: listExpenses });
 
   useFocusEffect(
     useCallback(() => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
     }, [queryClient])
   );
 
@@ -28,7 +29,7 @@ function UsersList() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text>Não foi possível carregar os usuários.</Text>
+        <Text>Não foi possível carregar as despesas.</Text>
       </View>
     );
   }
@@ -36,29 +37,28 @@ function UsersList() {
   return (
     <View style={styles.container}>
       <Text variant="headlineSmall" style={styles.title}>
-        Usuários
+        Despesas
       </Text>
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <List.Item
-            title={item.name}
-            description={`${item.role === 'ADMIN' ? 'Administradora' : 'Vendedora'}${item.active ? '' : ' · inativo'}`}
-            onPress={() => router.push(`/users/${item.id}`)}
+            title={item.creditorName}
+            description={`${formatDateBR(item.expenseDate)} · ${expenseCategoryLabel(item.category)} · ${item.payingCompanyName}`}
           />
         )}
-        ListEmptyComponent={<Text style={styles.empty}>Nenhum usuário cadastrado ainda.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>Nenhuma despesa lançada ainda.</Text>}
       />
-      <FAB icon="plus" style={styles.fab} label="Novo usuário" onPress={() => router.push('/users/new')} />
+      <FAB icon="plus" style={styles.fab} label="Nova despesa" onPress={() => router.push('/expenses/new')} />
     </View>
   );
 }
 
-export default function UsersScreen() {
+export default function ExpensesScreen() {
   return (
     <RequireRole role="ADMIN">
-      <UsersList />
+      <ExpensesList />
     </RequireRole>
   );
 }

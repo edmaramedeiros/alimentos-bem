@@ -3,8 +3,10 @@ package com.edmara.alimentos.user;
 import com.edmara.alimentos.commission.CommissionService;
 import com.edmara.alimentos.commission.dto.CommissionRateEntryResponse;
 import com.edmara.alimentos.commission.dto.SetCommissionRateRequest;
+import com.edmara.alimentos.user.dto.ChangePasswordRequest;
 import com.edmara.alimentos.user.dto.CreateUserRequest;
 import com.edmara.alimentos.user.dto.ResetPasswordRequest;
+import com.edmara.alimentos.user.dto.UpdateMeRequest;
 import com.edmara.alimentos.user.dto.UpdateUserRequest;
 import com.edmara.alimentos.user.dto.UserResponse;
 import jakarta.validation.Valid;
@@ -37,6 +39,20 @@ public class UserController {
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal AppUser currentUser) {
         return UserResponse.from(currentUser);
+    }
+
+    @PatchMapping("/me")
+    public UserResponse updateMe(@Valid @RequestBody UpdateMeRequest request, @AuthenticationPrincipal AppUser currentUser) {
+        return userService.updateMe(currentUser.getId(), request);
+    }
+
+    @PostMapping("/me/change-password")
+    public ResponseEntity<Void> changeMyPassword(
+        @Valid @RequestBody ChangePasswordRequest request,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        userService.changePassword(currentUser.getId(), request);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping

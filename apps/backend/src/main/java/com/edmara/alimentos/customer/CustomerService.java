@@ -51,7 +51,7 @@ public class CustomerService {
     public CustomerResponse create(CreateCustomerRequest request, AppUser currentUser) {
         Customer customer = new Customer(request.name(), currentUser);
         applyFields(customer, request.phone(), request.email(), request.addressLine(), request.city(),
-            request.state(), request.zip(), request.notes(), request.whatsappOptIn());
+            request.state(), request.zip(), request.notes(), request.grupo(), request.whatsappOptIn());
         return CustomerResponse.from(customerRepository.save(customer));
     }
 
@@ -62,7 +62,7 @@ public class CustomerService {
 
         customer.setName(request.name());
         applyFields(customer, request.phone(), request.email(), request.addressLine(), request.city(),
-            request.state(), request.zip(), request.notes(), request.whatsappOptIn());
+            request.state(), request.zip(), request.notes(), request.grupo(), request.whatsappOptIn());
         customer.setActive(request.active());
 
         return CustomerResponse.from(customer);
@@ -77,6 +77,7 @@ public class CustomerService {
         String state,
         String zip,
         String notes,
+        String grupo,
         boolean whatsappOptIn
     ) {
         customer.setPhone(phone);
@@ -86,6 +87,7 @@ public class CustomerService {
         customer.setState(state);
         customer.setZip(zip);
         customer.setNotes(notes);
+        customer.setGrupo(grupo);
         customer.setWhatsappOptIn(whatsappOptIn);
     }
 

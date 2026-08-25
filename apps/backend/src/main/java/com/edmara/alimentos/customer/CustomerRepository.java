@@ -13,4 +13,6 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
     List<Customer> findByNameContainingIgnoreCase(String query);
 
     List<Customer> findByWhatsappOptInTrueAndActiveTrue();
+
+    List<Customer> findByOwnerVendedor_IdAndWhatsappOptInTrueAndActiveTrue(UUID ownerId);
 }

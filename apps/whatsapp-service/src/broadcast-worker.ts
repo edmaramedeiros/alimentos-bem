@@ -9,6 +9,7 @@ let dispatching = false;
 
 type BroadcastRow = {
   id: string;
+  created_by: string;
   message: string;
   attachment_data: Buffer | null;
   attachment_file_name: string | null;
@@ -23,15 +24,18 @@ type RecipientRow = {
 
 async function dispatchNextBroadcast(): Promise<void> {
   if (dispatching) return;
-  if (!getStatus().connected) return;
 
   const { rows: queued } = await pool.query<BroadcastRow>(
-    `SELECT id, message, attachment_data, attachment_file_name, attachment_mime_type, delay_seconds
+    `SELECT id, created_by, message, attachment_data, attachment_file_name, attachment_mime_type, delay_seconds
      FROM whatsapp_broadcast WHERE status = 'QUEUED' ORDER BY created_at ASC LIMIT 1`
   );
   if (queued.length === 0) return;
 
   const broadcast = queued[0];
+  const vendedorId = broadcast.created_by;
+  // Ainda nao conectada: espera o proximo ciclo em vez de falhar a campanha inteira.
+  if (!getStatus(vendedorId).connected) return;
+
   dispatching = true;
 
   try {
@@ -54,10 +58,10 @@ async function dispatchNextBroadcast(): Promise<void> {
     for (const recipient of recipients) {
       // Se a conexao cair no meio do envio, para por aqui; o restante continua
       // QUEUED e sera retomado no proximo ciclo de polling assim que reconectar.
-      if (!getStatus().connected) break;
+      if (!getStatus(vendedorId).connected) break;
 
       try {
-        await sendCampaignMessage(recipient.phone, broadcast.message, attachment);
+        await sendCampaignMessage(vendedorId, recipient.phone, broadcast.message, attachment);
         await pool.query(
           "UPDATE whatsapp_broadcast_recipient SET status = 'SENT', sent_at = now(), updated_at = now() WHERE id = $1",
           [recipient.id]

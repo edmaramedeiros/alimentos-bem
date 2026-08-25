@@ -17,6 +17,7 @@ const schema = z.object({
   state: z.string().optional(),
   zip: z.string().optional(),
   notes: z.string().optional(),
+  grupo: z.string().optional(),
   whatsappOptIn: z.boolean(),
 });
 
@@ -52,6 +53,7 @@ export function CustomerForm({
       state: '',
       zip: '',
       notes: '',
+      grupo: '',
       whatsappOptIn: false,
       ...defaultValues,
     },
@@ -181,6 +183,14 @@ export function CustomerForm({
             value={value}
             style={styles.input}
           />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="grupo"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput label="Grupo" mode="outlined" onBlur={onBlur} onChangeText={onChange} value={value} style={styles.input} />
         )}
       />
 

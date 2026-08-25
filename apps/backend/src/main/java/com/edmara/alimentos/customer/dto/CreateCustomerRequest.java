@@ -11,6 +11,7 @@ public record CreateCustomerRequest(
     String state,
     String zip,
     String notes,
+    String grupo,
     boolean whatsappOptIn
 ) {
 }

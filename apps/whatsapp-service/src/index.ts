@@ -1,5 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from "express";
-import { connectToWhatsApp, getQrDataUrl, getStatus } from "./whatsapp.js";
+import { disconnectWhatsApp, ensureConnection, getQrDataUrl, getStatus, reconnectExistingSessions } from "./whatsapp.js";
 import { startBroadcastWorker } from "./broadcast-worker.js";
 
 const app = express();
@@ -21,18 +21,30 @@ function requireInternalApiKey(req: Request, res: Response, next: NextFunction) 
   next();
 }
 
-app.get("/internal/session/status", requireInternalApiKey, (_req, res) => {
-  res.json(getStatus());
+app.get("/internal/session/:vendedorId/status", requireInternalApiKey, async (req, res) => {
+  await ensureConnection(req.params.vendedorId);
+  res.json(getStatus(req.params.vendedorId));
 });
 
-app.get("/internal/session/qr", requireInternalApiKey, async (_req, res) => {
-  const qr = await getQrDataUrl();
+app.get("/internal/session/:vendedorId/qr", requireInternalApiKey, async (req, res) => {
+  await ensureConnection(req.params.vendedorId);
+  const qr = await getQrDataUrl(req.params.vendedorId);
   res.json({ qr });
+});
+
+app.post("/internal/session/:vendedorId/logout", requireInternalApiKey, async (req, res) => {
+  try {
+    await disconnectWhatsApp(req.params.vendedorId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Falha ao desconectar WhatsApp", err);
+    res.status(500).json({ error: "Falha ao desconectar" });
+  }
 });
 
 app.listen(PORT, () => {
   console.log(`whatsapp-service ouvindo na porta ${PORT}`);
 });
 
-connectToWhatsApp().catch((err) => console.error("Falha ao iniciar conexão com o WhatsApp", err));
+reconnectExistingSessions().catch((err) => console.error("Falha ao reconectar sessões existentes", err));
 startBroadcastWorker();

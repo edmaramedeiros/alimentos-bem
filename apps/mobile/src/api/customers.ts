@@ -19,6 +19,7 @@ export type CustomerInput = {
   state?: string;
   zip?: string;
   notes?: string;
+  grupo?: string;
   whatsappOptIn: boolean;
 };
 

@@ -12,6 +12,7 @@ public record UpdateCustomerRequest(
     String state,
     String zip,
     String notes,
+    String grupo,
     @NotNull(message = "Situação (ativo/inativo) é obrigatória") Boolean active,
     boolean whatsappOptIn
 ) {

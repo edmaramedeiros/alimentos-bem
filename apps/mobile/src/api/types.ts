@@ -43,10 +43,22 @@ export type Customer = {
   state: string | null;
   zip: string | null;
   notes: string | null;
+  grupo: string | null;
   active: boolean;
   whatsappOptIn: boolean;
   ownerVendedorId: string;
   ownerVendedorName: string;
+};
+
+export type ExpenseCategory = 'MATERIA_PRIMA' | 'SUPRIMENTOS' | 'LOGISTICA' | 'TAXAS';
+
+export type Expense = {
+  id: string;
+  creditorName: string;
+  category: ExpenseCategory;
+  expenseDate: string;
+  payingCompanyName: string;
+  createdByName: string;
 };
 
 export type SaleStatus = 'AWAITING_DELIVERY' | 'AWAITING_PAYMENT' | 'PAID' | 'CANCELLED';

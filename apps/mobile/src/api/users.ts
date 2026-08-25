@@ -9,6 +9,18 @@ export function getUser(id: string): Promise<UserSummary> {
   return apiRequest<UserSummary>(`/api/users/${id}`);
 }
 
+export function getMe(): Promise<UserSummary> {
+  return apiRequest<UserSummary>('/api/users/me');
+}
+
+export function updateMe(input: { name: string; email: string }): Promise<UserSummary> {
+  return apiRequest<UserSummary>('/api/users/me', { method: 'PATCH', body: input });
+}
+
+export function changeMyPassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
+  return apiRequest<void>('/api/users/me/change-password', { method: 'POST', body: input });
+}
+
 export type CreateUserInput = {
   name: string;
   email: string;

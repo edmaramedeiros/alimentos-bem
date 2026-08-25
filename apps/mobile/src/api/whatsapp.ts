@@ -42,3 +42,7 @@ export function getSessionStatus(): Promise<WhatsappSessionStatus> {
 export function getSessionQr(): Promise<{ qr: string | null }> {
   return apiRequest<{ qr: string | null }>('/api/whatsapp/session/qr');
 }
+
+export function disconnectSession(): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/api/whatsapp/session/logout', { method: 'POST' });
+}

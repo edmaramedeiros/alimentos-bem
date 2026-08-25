@@ -5,6 +5,8 @@ import com.edmara.alimentos.customer.Customer;
 import com.edmara.alimentos.customer.CustomerRepository;
 import com.edmara.alimentos.customer.dto.CustomerResponse;
 import com.edmara.alimentos.user.AppUser;
+import com.edmara.alimentos.user.Role;
+import com.edmara.alimentos.whatsapp.dto.BroadcastRecipientResponse;
 import com.edmara.alimentos.whatsapp.dto.BroadcastResponse;
 import com.edmara.alimentos.whatsapp.dto.CreateBroadcastRequest;
 import java.util.Base64;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -45,13 +48,13 @@ public class WhatsappService {
     }
 
     @Transactional(readOnly = true)
-    public List<CustomerResponse> previewRecipients(String cityFilter, String nameFilter) {
-        return matchingCustomers(cityFilter, nameFilter).stream().map(CustomerResponse::from).toList();
+    public List<CustomerResponse> previewRecipients(String cityFilter, String nameFilter, AppUser currentUser) {
+        return matchingCustomers(cityFilter, nameFilter, currentUser).stream().map(CustomerResponse::from).toList();
     }
 
     @Transactional
     public BroadcastResponse create(CreateBroadcastRequest request, AppUser currentUser) {
-        List<Customer> customers = matchingCustomers(request.cityFilter(), request.nameFilter());
+        List<Customer> customers = matchingCustomers(request.cityFilter(), request.nameFilter(), currentUser);
         if (customers.isEmpty()) {
             throw new IllegalArgumentException(
                 "Nenhum cliente encontrado com esses filtros que tenha telefone e aceite receber mensagens no WhatsApp"
@@ -78,46 +81,63 @@ public class WhatsappService {
     }
 
     @Transactional(readOnly = true)
-    public List<BroadcastResponse> list() {
-        return broadcastRepository.findAllByOrderByCreatedAtDesc().stream().map(BroadcastResponse::from).toList();
+    public List<BroadcastResponse> list(AppUser currentUser) {
+        List<WhatsappBroadcast> broadcasts = currentUser.getRole() == Role.ADMIN
+            ? broadcastRepository.findAllByOrderByCreatedAtDesc()
+            : broadcastRepository.findByCreatedBy_IdOrderByCreatedAtDesc(currentUser.getId());
+        return broadcasts.stream().map(BroadcastResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
-    public BroadcastResponse getById(UUID id) {
-        return BroadcastResponse.from(findBroadcast(id));
+    public BroadcastResponse getById(UUID id, AppUser currentUser) {
+        WhatsappBroadcast broadcast = findBroadcast(id);
+        assertOwnership(broadcast, currentUser);
+        return BroadcastResponse.from(broadcast);
     }
 
     @Transactional(readOnly = true)
-    public List<com.edmara.alimentos.whatsapp.dto.BroadcastRecipientResponse> listRecipients(UUID id) {
-        findBroadcast(id);
+    public List<BroadcastRecipientResponse> listRecipients(UUID id, AppUser currentUser) {
+        WhatsappBroadcast broadcast = findBroadcast(id);
+        assertOwnership(broadcast, currentUser);
         return recipientRepository.findByBroadcast_IdOrderByCreatedAtAsc(id).stream()
-            .map(com.edmara.alimentos.whatsapp.dto.BroadcastRecipientResponse::from)
+            .map(BroadcastRecipientResponse::from)
             .toList();
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> sessionStatus() {
+    public Map<String, Object> sessionStatus(AppUser currentUser) {
         return internalRestClient.get()
-            .uri("/internal/session/status")
+            .uri("/internal/session/{vendedorId}/status", currentUser.getId())
             .header("X-Internal-Api-Key", internalApiKey)
             .retrieve()
             .body(Map.class);
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> sessionQr() {
+    public Map<String, Object> sessionQr(AppUser currentUser) {
         return internalRestClient.get()
-            .uri("/internal/session/qr")
+            .uri("/internal/session/{vendedorId}/qr", currentUser.getId())
             .header("X-Internal-Api-Key", internalApiKey)
             .retrieve()
             .body(Map.class);
     }
 
-    private List<Customer> matchingCustomers(String cityFilter, String nameFilter) {
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> disconnectSession(AppUser currentUser) {
+        return internalRestClient.post()
+            .uri("/internal/session/{vendedorId}/logout", currentUser.getId())
+            .header("X-Internal-Api-Key", internalApiKey)
+            .retrieve()
+            .body(Map.class);
+    }
+
+    private List<Customer> matchingCustomers(String cityFilter, String nameFilter, AppUser currentUser) {
         String normalizedCity = StringUtils.hasText(cityFilter) ? cityFilter.trim().toLowerCase() : null;
         String normalizedName = StringUtils.hasText(nameFilter) ? nameFilter.trim().toLowerCase() : null;
 
-        return customerRepository.findByWhatsappOptInTrueAndActiveTrue().stream()
+        // Cada vendedora manda pelo proprio numero, entao so pode alcancar os proprios
+        // clientes (mesma regra de posse usada em vendas e cadastro de clientes).
+        return customerRepository.findByOwnerVendedor_IdAndWhatsappOptInTrueAndActiveTrue(currentUser.getId()).stream()
             .filter(c -> StringUtils.hasText(c.getPhone()))
             .filter(c -> normalizedCity == null || (c.getCity() != null && c.getCity().toLowerCase().contains(normalizedCity)))
             .filter(c -> normalizedName == null || c.getName().toLowerCase().contains(normalizedName))
@@ -139,6 +159,13 @@ public class WhatsappService {
 
     private String blankToNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private void assertOwnership(WhatsappBroadcast broadcast, AppUser currentUser) {
+        boolean isOwner = broadcast.getCreatedBy().getId().equals(currentUser.getId());
+        if (currentUser.getRole() != Role.ADMIN && !isOwner) {
+            throw new AccessDeniedException("Você não tem permissão para acessar esta campanha");
+        }
     }
 
     private WhatsappBroadcast findBroadcast(UUID id) {

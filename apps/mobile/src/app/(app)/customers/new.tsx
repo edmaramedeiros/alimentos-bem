@@ -26,6 +26,7 @@ export default function NewCustomerScreen() {
         state: data.state || undefined,
         zip: data.zip || undefined,
         notes: data.notes || undefined,
+        grupo: data.grupo || undefined,
         whatsappOptIn: data.whatsappOptIn,
       });
       await queryClient.invalidateQueries({ queryKey: ['customers'] });

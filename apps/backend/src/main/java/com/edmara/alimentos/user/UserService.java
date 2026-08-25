@@ -2,8 +2,10 @@ package com.edmara.alimentos.user;
 
 import com.edmara.alimentos.common.ConflictException;
 import com.edmara.alimentos.common.ResourceNotFoundException;
+import com.edmara.alimentos.user.dto.ChangePasswordRequest;
 import com.edmara.alimentos.user.dto.CreateUserRequest;
 import com.edmara.alimentos.user.dto.ResetPasswordRequest;
+import com.edmara.alimentos.user.dto.UpdateMeRequest;
 import com.edmara.alimentos.user.dto.UpdateUserRequest;
 import com.edmara.alimentos.user.dto.UserResponse;
 import java.util.List;
@@ -65,6 +67,26 @@ public class UserService {
     @Transactional
     public void resetPassword(UUID id, ResetPasswordRequest request) {
         AppUser user = findEntity(id);
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+    }
+
+    @Transactional
+    public UserResponse updateMe(UUID id, UpdateMeRequest request) {
+        AppUser user = findEntity(id);
+        if (!user.getEmail().equalsIgnoreCase(request.email()) && appUserRepository.existsByEmail(request.email())) {
+            throw new ConflictException("Já existe um usuário com este e-mail");
+        }
+        user.setName(request.name());
+        user.setEmail(request.email());
+        return UserResponse.from(user);
+    }
+
+    @Transactional
+    public void changePassword(UUID id, ChangePasswordRequest request) {
+        AppUser user = findEntity(id);
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Senha atual incorreta");
+        }
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
     }
 
