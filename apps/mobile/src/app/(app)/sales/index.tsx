@@ -2,20 +2,23 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Chip, FAB, List, Menu, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Chip, Dialog, FAB, List, Menu, Portal, Searchbar, Text } from 'react-native-paper';
 
 import { listSales } from '@/api/sales';
 import type { SaleStatus } from '@/api/types';
+import { VendedorPicker } from '@/components/vendedor-picker';
+import { useAuthStore } from '@/store/auth-store';
 import { formatCurrencyBRL, formatDateTimeBR, saleStatusLabel } from '@/utils/format';
 
 const STATUS_OPTIONS: SaleStatus[] = ['AWAITING_DELIVERY', 'AWAITING_PAYMENT', 'PAID', 'CANCELLED'];
 
 // Vendas para "Consumidor" têm customerId null; usa um sentinel distinto de null
-// (que já significa "sem filtro") para poder filtrar só por elas no menu.
+// (que já significa "sem filtro") para poder filtrar só por elas na busca.
 const CONSUMER_FILTER = '__consumer__';
 
 export default function SalesScreen() {
   const queryClient = useQueryClient();
+  const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
   const { data, isLoading, error } = useQuery({
     queryKey: ['sales'],
     queryFn: listSales,
@@ -28,8 +31,10 @@ export default function SalesScreen() {
   );
 
   const [customerFilter, setCustomerFilter] = useState<string | null>(null);
+  const [vendedorFilter, setVendedorFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<SaleStatus | null>(null);
-  const [customerMenuVisible, setCustomerMenuVisible] = useState(false);
+  const [customerDialogVisible, setCustomerDialogVisible] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
 
   const customerOptions = useMemo(() => {
@@ -49,6 +54,12 @@ export default function SalesScreen() {
     return options;
   }, [data]);
 
+  const filteredCustomerOptions = useMemo(() => {
+    const normalized = customerSearch.trim().toLowerCase();
+    if (!normalized) return customerOptions;
+    return customerOptions.filter(([, name]) => name.toLowerCase().includes(normalized));
+  }, [customerOptions, customerSearch]);
+
   const filteredSales = useMemo(() => {
     return (data ?? []).filter((sale) => {
       if (customerFilter === CONSUMER_FILTER) {
@@ -56,12 +67,18 @@ export default function SalesScreen() {
       } else if (customerFilter && sale.customerId !== customerFilter) {
         return false;
       }
+      if (vendedorFilter && sale.vendedorId !== vendedorFilter) return false;
       if (statusFilter && sale.status !== statusFilter) return false;
       return true;
     });
-  }, [data, customerFilter, statusFilter]);
+  }, [data, customerFilter, vendedorFilter, statusFilter]);
 
   const selectedCustomerName = customerFilter ? customerOptions.find(([id]) => id === customerFilter)?.[1] : null;
+
+  const openCustomerDialog = () => {
+    setCustomerSearch('');
+    setCustomerDialogVisible(true);
+  };
 
   if (isLoading) {
     return (
@@ -82,33 +99,11 @@ export default function SalesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.filters}>
-        <Menu
-          visible={customerMenuVisible}
-          onDismiss={() => setCustomerMenuVisible(false)}
-          anchor={
-            <Button mode="outlined" onPress={() => setCustomerMenuVisible(true)} style={styles.filterButton}>
-              {selectedCustomerName ? `Cliente: ${selectedCustomerName}` : 'Cliente: todos'}
-            </Button>
-          }
-        >
-          <Menu.Item
-            title="Todos"
-            onPress={() => {
-              setCustomerFilter(null);
-              setCustomerMenuVisible(false);
-            }}
-          />
-          {customerOptions.map(([id, name]) => (
-            <Menu.Item
-              key={id}
-              title={name}
-              onPress={() => {
-                setCustomerFilter(id);
-                setCustomerMenuVisible(false);
-              }}
-            />
-          ))}
-        </Menu>
+        <Button mode="outlined" onPress={openCustomerDialog} style={styles.filterButton}>
+          {selectedCustomerName ? `Cliente: ${selectedCustomerName}` : 'Cliente: todos'}
+        </Button>
+
+        {isAdmin && <VendedorPicker value={vendedorFilter} onChange={setVendedorFilter} />}
 
         <Menu
           visible={statusMenuVisible}
@@ -166,6 +161,43 @@ export default function SalesScreen() {
         }
       />
       <FAB icon="plus" style={styles.fab} label="Nova venda" onPress={() => router.push('/sales/new')} />
+
+      <Portal>
+        <Dialog visible={customerDialogVisible} onDismiss={() => setCustomerDialogVisible(false)} style={styles.dialog}>
+          <Dialog.Title>Filtrar por cliente</Dialog.Title>
+          <View style={styles.searchWrapper}>
+            <Searchbar placeholder="Buscar por nome" value={customerSearch} onChangeText={setCustomerSearch} />
+          </View>
+          <Dialog.ScrollArea style={styles.dialogScroll}>
+            <FlatList
+              data={filteredCustomerOptions}
+              keyExtractor={([id]) => id}
+              ListHeaderComponent={
+                <List.Item
+                  title="Todos"
+                  onPress={() => {
+                    setCustomerFilter(null);
+                    setCustomerDialogVisible(false);
+                  }}
+                />
+              }
+              renderItem={({ item: [id, name] }) => (
+                <List.Item
+                  title={name}
+                  onPress={() => {
+                    setCustomerFilter(id);
+                    setCustomerDialogVisible(false);
+                  }}
+                />
+              )}
+              ListEmptyComponent={<Text style={styles.emptyDialog}>Nenhum cliente encontrado.</Text>}
+            />
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setCustomerDialogVisible(false)}>Fechar</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -186,4 +218,8 @@ const styles = StyleSheet.create({
   total: { fontWeight: '600' },
   empty: { textAlign: 'center', marginTop: 32, opacity: 0.6 },
   fab: { position: 'absolute', right: 16, bottom: 16 },
+  dialog: { maxHeight: '80%' },
+  searchWrapper: { paddingHorizontal: 24, paddingBottom: 8 },
+  dialogScroll: { maxHeight: 400 },
+  emptyDialog: { padding: 16, opacity: 0.6 },
 });
