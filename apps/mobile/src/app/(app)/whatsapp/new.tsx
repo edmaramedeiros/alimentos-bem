@@ -155,6 +155,10 @@ export default function NewCampaignScreen() {
       <HelperText type={delayValid ? 'info' : 'error'} visible>
         {delayValid ? 'Mínimo 3s, máximo 300s. Um intervalo maior reduz o risco do número ser bloqueado.' : 'Informe um valor entre 3 e 300 segundos.'}
       </HelperText>
+      <Text style={styles.muted}>
+        Os envios só acontecem de segunda a sexta, das 7h às 17h. Fora desse horário a campanha fica na fila e
+        continua sozinha assim que o horário reabrir.
+      </Text>
 
       <HelperText type="error" visible={!!serverError}>
         {serverError}

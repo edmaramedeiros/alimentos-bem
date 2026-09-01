@@ -32,8 +32,34 @@ function personalizeMessage(message: string, customerName: string): string {
   return message.replace(NAME_PLACEHOLDER, firstName);
 }
 
+// Campanhas só podem ser enviadas em horário comercial (segunda a sexta, 07h-17h,
+// fuso de Cuiabá) para não incomodar clientes fora de hora. Fora da janela, o
+// worker simplesmente não processa nada nesse ciclo - a campanha continua QUEUED
+// e retoma sozinha assim que a janela reabrir.
+const SEND_TIMEZONE = "America/Cuiaba";
+const SEND_WINDOW_START_HOUR = 7;
+const SEND_WINDOW_END_HOUR = 17;
+
+function isWithinSendingWindow(date: Date = new Date()): boolean {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SEND_TIMEZONE,
+    weekday: "short",
+    hour: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const hour = Number(parts.find((p) => p.type === "hour")?.value);
+
+  const isWeekday = weekday !== undefined && weekday !== "Sat" && weekday !== "Sun";
+  const isWithinHours = hour >= SEND_WINDOW_START_HOUR && hour < SEND_WINDOW_END_HOUR;
+
+  return isWeekday && isWithinHours;
+}
+
 async function dispatchNextBroadcast(): Promise<void> {
   if (dispatching) return;
+  if (!isWithinSendingWindow()) return;
 
   const { rows: queued } = await pool.query<BroadcastRow>(
     `SELECT id, created_by, message, attachment_data, attachment_file_name, attachment_mime_type, delay_seconds
@@ -66,9 +92,11 @@ async function dispatchNextBroadcast(): Promise<void> {
         : undefined;
 
     for (const recipient of recipients) {
-      // Se a conexao cair no meio do envio, para por aqui; o restante continua
-      // QUEUED e sera retomado no proximo ciclo de polling assim que reconectar.
+      // Se a conexao cair, ou a janela de horario comercial fechar, no meio do
+      // envio, para por aqui; o restante continua QUEUED e sera retomado no
+      // proximo ciclo de polling.
       if (!getStatus(vendedorId).connected) break;
+      if (!isWithinSendingWindow()) break;
 
       try {
         const message = personalizeMessage(broadcast.message, recipient.customer_name);
