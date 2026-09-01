@@ -46,6 +46,28 @@ export default function WhatsappScreen() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [disconnectError, setDisconnectError] = useState<string | null>(null);
 
+  const [waking, setWaking] = useState(false);
+  const [wakeMessage, setWakeMessage] = useState<string | null>(null);
+
+  const handleWakeService = async () => {
+    setWaking(true);
+    setWakeMessage(null);
+    try {
+      const result = await getSessionStatus();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'status'] }),
+        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'qr'] }),
+      ]);
+      setWakeMessage(result.connected ? 'Serviço acordado e conectado.' : 'Serviço acordado. Aguardando QR code.');
+    } catch (error) {
+      setWakeMessage(
+        error instanceof ApiError ? `Não foi possível acordar o serviço: ${error.message}` : 'Não foi possível acordar o serviço.'
+      );
+    } finally {
+      setWaking(false);
+    }
+  };
+
   const handleDisconnect = async () => {
     setDisconnecting(true);
     setDisconnectError(null);
@@ -65,11 +87,18 @@ export default function WhatsappScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text variant="headlineSmall" style={styles.title}>
-        WhatsApp
-      </Text>
+      <View style={styles.titleRow}>
+        <Text variant="headlineSmall">WhatsApp</Text>
+        <Button mode="outlined" compact onPress={handleWakeService} loading={waking} disabled={waking} icon="power">
+          Acordar serviço
+        </Button>
+      </View>
+      {waking && (
+        <Text style={styles.muted}>Acordando o serviço... isso pode levar até 30 segundos se ele estiver hibernado.</Text>
+      )}
+      {wakeMessage && !waking && <Text style={styles.muted}>{wakeMessage}</Text>}
 
-      <Card style={styles.card}>
+      <Card style={[styles.card, styles.cardSpacing]}>
         <Card.Content>
           {statusQuery.isLoading ? (
             <ActivityIndicator />
@@ -170,8 +199,9 @@ export default function WhatsappScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 24, paddingBottom: 48 },
-  title: { marginBottom: 16 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 },
   card: { marginBottom: 16 },
+  cardSpacing: { marginTop: 12 },
   connectedRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   disconnectButton: { alignSelf: 'flex-start', marginTop: 4 },
   qrSection: { alignItems: 'center', gap: 8 },
