@@ -10,6 +10,7 @@ export type CreateExpenseInput = {
   category: ExpenseCategory;
   expenseDate: string;
   payingCompanyName: string;
+  amount: number;
 };
 
 export function createExpense(input: CreateExpenseInput): Promise<Expense> {

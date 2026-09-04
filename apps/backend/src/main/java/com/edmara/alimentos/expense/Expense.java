@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -29,6 +30,9 @@ public class Expense extends BaseEntity {
     @Column(name = "paying_company_name", nullable = false, length = 150)
     private String payingCompanyName;
 
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by", nullable = false)
     private AppUser createdBy;
@@ -42,17 +46,23 @@ public class Expense extends BaseEntity {
         ExpenseCategory category,
         LocalDate expenseDate,
         String payingCompanyName,
+        BigDecimal amount,
         AppUser createdBy
     ) {
         this.creditorName = creditorName;
         this.category = category;
         this.expenseDate = expenseDate;
         this.payingCompanyName = payingCompanyName;
+        this.amount = amount;
         this.createdBy = createdBy;
     }
 
     public String getCreditorName() {
         return creditorName;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
     }
 
     public ExpenseCategory getCategory() {

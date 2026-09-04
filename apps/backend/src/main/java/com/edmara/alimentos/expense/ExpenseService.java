@@ -28,6 +28,7 @@ public class ExpenseService {
             request.category(),
             request.expenseDate(),
             request.payingCompanyName(),
+            request.amount(),
             currentUser
         );
         return ExpenseResponse.from(expenseRepository.save(expense));

@@ -20,6 +20,7 @@ const schema = z.object({
   category: z.enum(['MATERIA_PRIMA', 'SUPRIMENTOS', 'LOGISTICA', 'TAXAS']),
   expenseDate: z.string().min(1, 'Informe a data'),
   payingCompanyName: z.string().min(1, 'Informe a empresa pagadora'),
+  amount: z.string().min(1, 'Informe o valor pago'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -40,6 +41,7 @@ function NewExpenseForm() {
       category: 'MATERIA_PRIMA',
       expenseDate: todayDateMask(),
       payingCompanyName: '',
+      amount: '',
     },
   });
 
@@ -47,6 +49,11 @@ function NewExpenseForm() {
     const isoDate = dateMaskToISO(data.expenseDate);
     if (!isoDate) {
       setServerError('Informe uma data válida no formato DD/MM/AAAA');
+      return;
+    }
+    const amount = Number(data.amount.replace(',', '.'));
+    if (!amount || amount <= 0) {
+      setServerError('Informe um valor pago válido');
       return;
     }
     setSubmitting(true);
@@ -57,6 +64,7 @@ function NewExpenseForm() {
         category: data.category,
         expenseDate: isoDate,
         payingCompanyName: data.payingCompanyName,
+        amount,
       });
       await queryClient.invalidateQueries({ queryKey: ['expenses'] });
       router.back();
@@ -127,6 +135,26 @@ function NewExpenseForm() {
       />
       <HelperText type="error" visible={!!errors.expenseDate}>
         {errors.expenseDate?.message}
+      </HelperText>
+
+      <Controller
+        control={control}
+        name="amount"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <TextInput
+            label="Valor pago"
+            mode="outlined"
+            keyboardType="decimal-pad"
+            onBlur={onBlur}
+            onChangeText={onChange}
+            value={value}
+            style={styles.input}
+            error={!!errors.amount}
+          />
+        )}
+      />
+      <HelperText type="error" visible={!!errors.amount}>
+        {errors.amount?.message}
       </HelperText>
 
       <Controller

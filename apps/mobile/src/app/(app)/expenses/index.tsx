@@ -6,7 +6,7 @@ import { ActivityIndicator, FAB, List, Text } from 'react-native-paper';
 
 import { listExpenses } from '@/api/expenses';
 import { RequireRole } from '@/components/require-role';
-import { expenseCategoryLabel, formatDateBR } from '@/utils/format';
+import { expenseCategoryLabel, formatCurrencyBRL, formatDateBR } from '@/utils/format';
 
 function ExpensesList() {
   const queryClient = useQueryClient();
@@ -46,6 +46,7 @@ function ExpensesList() {
           <List.Item
             title={item.creditorName}
             description={`${formatDateBR(item.expenseDate)} · ${expenseCategoryLabel(item.category)} · ${item.payingCompanyName}`}
+            right={() => <Text style={styles.amount}>{formatCurrencyBRL(item.amount)}</Text>}
           />
         )}
         ListEmptyComponent={<Text style={styles.empty}>Nenhuma despesa lançada ainda.</Text>}
@@ -67,6 +68,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   title: { padding: 24, paddingBottom: 8 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  amount: { alignSelf: 'center', fontWeight: '600' },
   empty: { textAlign: 'center', marginTop: 32, opacity: 0.6 },
   fab: { position: 'absolute', right: 16, bottom: 16 },
 });

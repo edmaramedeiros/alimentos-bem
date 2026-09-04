@@ -2,6 +2,7 @@ package com.edmara.alimentos.expense.dto;
 
 import com.edmara.alimentos.expense.Expense;
 import com.edmara.alimentos.expense.ExpenseCategory;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -11,6 +12,7 @@ public record ExpenseResponse(
     ExpenseCategory category,
     LocalDate expenseDate,
     String payingCompanyName,
+    BigDecimal amount,
     String createdByName
 ) {
 
@@ -21,6 +23,7 @@ public record ExpenseResponse(
             expense.getCategory(),
             expense.getExpenseDate(),
             expense.getPayingCompanyName(),
+            expense.getAmount(),
             expense.getCreatedBy().getName()
         );
     }

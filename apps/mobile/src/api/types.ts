@@ -58,6 +58,7 @@ export type Expense = {
   category: ExpenseCategory;
   expenseDate: string;
   payingCompanyName: string;
+  amount: number;
   createdByName: string;
 };
 
