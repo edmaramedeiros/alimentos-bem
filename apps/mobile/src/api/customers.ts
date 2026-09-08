@@ -10,6 +10,10 @@ export function getCustomer(id: string): Promise<Customer> {
   return apiRequest<Customer>(`/api/customers/${id}`);
 }
 
+export function getDefaultLocation(): Promise<{ city: string | null; state: string | null }> {
+  return apiRequest<{ city: string | null; state: string | null }>('/api/customers/default-location');
+}
+
 export type CustomerInput = {
   name: string;
   phone?: string;

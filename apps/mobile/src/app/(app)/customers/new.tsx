@@ -1,17 +1,21 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native-paper';
 
 import { ApiError } from '@/api/client';
-import { createCustomer } from '@/api/customers';
+import { createCustomer, getDefaultLocation } from '@/api/customers';
 import { CustomerForm, type CustomerFormData } from '@/components/customer-form';
 
 export default function NewCustomerScreen() {
   const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // Sugere o município/UF mais usado pelo próprio vendedor nos cadastros
+  // anteriores, pra não precisar selecionar de novo toda hora.
+  const defaultLocationQuery = useQuery({ queryKey: ['customers', 'default-location'], queryFn: getDefaultLocation });
 
   const onSubmit = async (data: CustomerFormData) => {
     setSubmitting(true);
@@ -38,17 +42,34 @@ export default function NewCustomerScreen() {
     }
   };
 
+  if (defaultLocationQuery.isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text variant="headlineSmall" style={styles.title}>
         Novo cliente
       </Text>
-      <CustomerForm onSubmit={onSubmit} submitting={submitting} serverError={serverError} />
+      <CustomerForm
+        defaultValues={{
+          state: defaultLocationQuery.data?.state ?? '',
+          city: defaultLocationQuery.data?.city ?? '',
+        }}
+        onSubmit={onSubmit}
+        submitting={submitting}
+        serverError={serverError}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: 24 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: { marginBottom: 16 },
 });

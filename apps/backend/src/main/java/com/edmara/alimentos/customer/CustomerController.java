@@ -2,6 +2,7 @@ package com.edmara.alimentos.customer;
 
 import com.edmara.alimentos.customer.dto.CreateCustomerRequest;
 import com.edmara.alimentos.customer.dto.CustomerResponse;
+import com.edmara.alimentos.customer.dto.DefaultLocationResponse;
 import com.edmara.alimentos.customer.dto.UpdateCustomerRequest;
 import com.edmara.alimentos.user.AppUser;
 import jakarta.validation.Valid;
@@ -35,6 +36,11 @@ public class CustomerController {
         @AuthenticationPrincipal AppUser currentUser
     ) {
         return customerService.list(currentUser, query);
+    }
+
+    @GetMapping("/default-location")
+    public DefaultLocationResponse defaultLocation(@AuthenticationPrincipal AppUser currentUser) {
+        return customerService.defaultLocation(currentUser);
     }
 
     @GetMapping("/{id}")
