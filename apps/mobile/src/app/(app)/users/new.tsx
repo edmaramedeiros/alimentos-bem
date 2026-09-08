@@ -9,7 +9,9 @@ import { z } from 'zod';
 
 import { ApiError } from '@/api/client';
 import { createUser } from '@/api/users';
+import { CityPicker } from '@/components/city-picker';
 import { RequireRole } from '@/components/require-role';
+import { StatePicker } from '@/components/state-picker';
 
 const schema = z.object({
   name: z.string().min(1, 'Informe o nome'),
@@ -17,6 +19,8 @@ const schema = z.object({
   password: z.string().min(8, 'A senha deve ter ao menos 8 caracteres'),
   role: z.enum(['ADMIN', 'VENDEDOR']),
   phone: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -29,10 +33,12 @@ function NewUserForm() {
   const {
     control,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', email: '', password: '', role: 'VENDEDOR', phone: '' },
+    defaultValues: { name: '', email: '', password: '', role: 'VENDEDOR', phone: '', city: '', state: '' },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -45,6 +51,8 @@ function NewUserForm() {
         password: data.password,
         role: data.role,
         phone: data.phone || undefined,
+        city: data.city || undefined,
+        state: data.state || undefined,
       });
       await queryClient.invalidateQueries({ queryKey: ['users'] });
       router.back();
@@ -122,6 +130,38 @@ function NewUserForm() {
       />
 
       <Text variant="labelLarge" style={styles.roleLabel}>
+        Município padrão (usado para pré-preencher novos clientes)
+      </Text>
+      <View style={styles.row}>
+        <View style={styles.stateInput}>
+          <Controller
+            control={control}
+            name="state"
+            render={({ field: { onChange, value } }) => (
+              <StatePicker
+                value={value ?? ''}
+                onChange={(uf) => {
+                  onChange(uf);
+                  if (watch('state') !== uf) {
+                    setValue('city', '');
+                  }
+                }}
+              />
+            )}
+          />
+        </View>
+        <View style={styles.rowItem}>
+          <Controller
+            control={control}
+            name="city"
+            render={({ field: { onChange, value } }) => (
+              <CityPicker value={value ?? ''} onChange={onChange} uf={watch('state') ?? ''} />
+            )}
+          />
+        </View>
+      </View>
+
+      <Text variant="labelLarge" style={styles.roleLabel}>
         Papel
       </Text>
       <Controller
@@ -161,6 +201,9 @@ const styles = StyleSheet.create({
   title: { marginBottom: 16 },
   input: { marginTop: 8 },
   roleLabel: { marginTop: 16 },
+  row: { flexDirection: 'row', gap: 8 },
+  rowItem: { flex: 3 },
+  stateInput: { flex: 1 },
   roleRow: { flexDirection: 'row' },
   roleItem: { flex: 1, paddingHorizontal: 0 },
   button: { marginTop: 16, marginBottom: 32 },

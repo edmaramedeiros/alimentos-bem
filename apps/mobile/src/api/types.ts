@@ -7,6 +7,8 @@ export type UserSummary = {
   role: Role;
   active: boolean;
   phone: string | null;
+  city: string | null;
+  state: string | null;
 };
 
 export type LoginResponse = {

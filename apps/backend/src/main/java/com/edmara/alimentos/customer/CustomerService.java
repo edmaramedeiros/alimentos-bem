@@ -9,7 +9,6 @@ import com.edmara.alimentos.user.AppUser;
 import com.edmara.alimentos.user.Role;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,13 +43,7 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public DefaultLocationResponse defaultLocation(AppUser currentUser) {
-        List<CustomerRepository.CityStateProjection> results =
-            customerRepository.findMostCommonCityAndState(currentUser.getId(), PageRequest.of(0, 1));
-        if (results.isEmpty()) {
-            return new DefaultLocationResponse(null, null);
-        }
-        CustomerRepository.CityStateProjection top = results.get(0);
-        return new DefaultLocationResponse(top.getCity(), top.getState());
+        return new DefaultLocationResponse(currentUser.getCity(), currentUser.getState());
     }
 
     @Transactional(readOnly = true)

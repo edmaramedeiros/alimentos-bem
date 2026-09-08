@@ -13,7 +13,12 @@ export function getMe(): Promise<UserSummary> {
   return apiRequest<UserSummary>('/api/users/me');
 }
 
-export function updateMe(input: { name: string; email: string }): Promise<UserSummary> {
+export function updateMe(input: {
+  name: string;
+  email: string;
+  city?: string | null;
+  state?: string | null;
+}): Promise<UserSummary> {
   return apiRequest<UserSummary>('/api/users/me', { method: 'PATCH', body: input });
 }
 
@@ -27,6 +32,8 @@ export type CreateUserInput = {
   password: string;
   role: Role;
   phone?: string;
+  city?: string;
+  state?: string;
 };
 
 export function createUser(input: CreateUserInput): Promise<UserSummary> {

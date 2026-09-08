@@ -47,6 +47,8 @@ public class UserService {
             request.role(),
             request.phone()
         );
+        user.setCity(request.city());
+        user.setState(request.state());
         return UserResponse.from(appUserRepository.save(user));
     }
 
@@ -61,6 +63,8 @@ public class UserService {
         user.setRole(request.role());
         user.setActive(request.active());
         user.setPhone(request.phone());
+        user.setCity(request.city());
+        user.setState(request.state());
         return UserResponse.from(user);
     }
 
@@ -78,6 +82,8 @@ public class UserService {
         }
         user.setName(request.name());
         user.setEmail(request.email());
+        user.setCity(request.city());
+        user.setState(request.state());
         return UserResponse.from(user);
     }
 

@@ -11,6 +11,8 @@ public record CreateUserRequest(
     @NotBlank(message = "E-mail é obrigatório") @Email(message = "E-mail inválido") String email,
     @NotBlank(message = "Senha é obrigatória") @Size(min = 8, message = "Senha deve ter ao menos 8 caracteres") String password,
     @NotNull(message = "Papel é obrigatório") Role role,
-    String phone
+    String phone,
+    String city,
+    String state
 ) {
 }

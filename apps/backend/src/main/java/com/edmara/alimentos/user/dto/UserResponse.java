@@ -4,7 +4,16 @@ import com.edmara.alimentos.user.AppUser;
 import com.edmara.alimentos.user.Role;
 import java.util.UUID;
 
-public record UserResponse(UUID id, String name, String email, Role role, boolean active, String phone) {
+public record UserResponse(
+    UUID id,
+    String name,
+    String email,
+    Role role,
+    boolean active,
+    String phone,
+    String city,
+    String state
+) {
 
     public static UserResponse from(AppUser user) {
         return new UserResponse(
@@ -13,7 +22,9 @@ public record UserResponse(UUID id, String name, String email, Role role, boolea
             user.getEmail(),
             user.getRole(),
             user.isActive(),
-            user.getPhone()
+            user.getPhone(),
+            user.getCity(),
+            user.getState()
         );
     }
 }

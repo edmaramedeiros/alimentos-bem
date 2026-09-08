@@ -35,6 +35,12 @@ public class AppUser extends BaseEntity implements UserDetails {
     @Column(length = 30)
     private String phone;
 
+    @Column(length = 100)
+    private String city;
+
+    @Column(length = 2)
+    private String state;
+
     protected AppUser() {
         // JPA
     }
@@ -94,6 +100,22 @@ public class AppUser extends BaseEntity implements UserDetails {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 
     // --- UserDetails ---

@@ -10,6 +10,8 @@ public record UpdateUserRequest(
     @NotBlank(message = "E-mail é obrigatório") @Email(message = "E-mail inválido") String email,
     @NotNull(message = "Papel é obrigatório") Role role,
     @NotNull(message = "Situação (ativo/inativo) é obrigatória") Boolean active,
-    String phone
+    String phone,
+    String city,
+    String state
 ) {
 }

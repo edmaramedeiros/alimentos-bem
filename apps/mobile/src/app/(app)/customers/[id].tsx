@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Chip, List, Text } from 'react-native-paper';
 
 import { ApiError } from '@/api/client';
-import { getCustomer, updateCustomer } from '@/api/customers';
+import { getCustomer, getDefaultLocation, updateCustomer } from '@/api/customers';
 import { CustomerForm, type CustomerFormData } from '@/components/customer-form';
 
 export default function CustomerDetailScreen() {
@@ -16,6 +16,14 @@ export default function CustomerDetailScreen() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const customerQuery = useQuery({ queryKey: ['customers', id], queryFn: () => getCustomer(id) });
+
+  // Se o cliente ainda não tem município, sugere o município padrão cadastrado
+  // no perfil da vendedora, pra não precisar selecionar de novo toda hora.
+  const defaultLocationQuery = useQuery({
+    queryKey: ['customers', 'default-location'],
+    queryFn: getDefaultLocation,
+    enabled: editing && !customerQuery.data?.city,
+  });
 
   const onSubmit = async (data: CustomerFormData) => {
     setSubmitting(true);
@@ -72,6 +80,14 @@ export default function CustomerDetailScreen() {
   const customer = customerQuery.data!;
 
   if (editing) {
+    if (defaultLocationQuery.isLoading) {
+      return (
+        <View style={styles.center}>
+          <ActivityIndicator />
+        </View>
+      );
+    }
+
     return (
       <ScrollView contentContainerStyle={styles.container}>
         <Text variant="headlineSmall" style={styles.title}>
@@ -83,8 +99,8 @@ export default function CustomerDetailScreen() {
             phone: customer.phone ?? '',
             email: customer.email ?? '',
             addressLine: customer.addressLine ?? '',
-            city: customer.city ?? '',
-            state: customer.state ?? '',
+            city: customer.city || defaultLocationQuery.data?.city || '',
+            state: customer.state || defaultLocationQuery.data?.state || '',
             zip: customer.zip ?? '',
             notes: customer.notes ?? '',
             grupo: customer.grupo ?? '',

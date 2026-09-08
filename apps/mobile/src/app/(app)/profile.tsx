@@ -5,6 +5,8 @@ import { ActivityIndicator, Button, Dialog, HelperText, Portal, Text, TextInput 
 
 import { ApiError } from '@/api/client';
 import { changeMyPassword, getMe, updateMe } from '@/api/users';
+import { CityPicker } from '@/components/city-picker';
+import { StatePicker } from '@/components/state-picker';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function ProfileScreen() {
@@ -17,6 +19,8 @@ export default function ProfileScreen() {
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editState, setEditState] = useState('');
+  const [editCity, setEditCity] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -24,6 +28,8 @@ export default function ProfileScreen() {
     if (!meQuery.data) return;
     setEditName(meQuery.data.name);
     setEditEmail(meQuery.data.email);
+    setEditState(meQuery.data.state ?? '');
+    setEditCity(meQuery.data.city ?? '');
     setEditError(null);
     setEditVisible(true);
   };
@@ -36,7 +42,12 @@ export default function ProfileScreen() {
     setEditSaving(true);
     setEditError(null);
     try {
-      const updated = await updateMe({ name: editName.trim(), email: editEmail.trim() });
+      const updated = await updateMe({
+        name: editName.trim(),
+        email: editEmail.trim(),
+        city: editCity || undefined,
+        state: editState || undefined,
+      });
       await queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
       if (token) setSession(token, updated);
       setEditVisible(false);
@@ -114,6 +125,9 @@ export default function ProfileScreen() {
       <Text variant="bodyMedium" style={styles.muted}>
         {me.email} · {me.role === 'ADMIN' ? 'Administradora' : 'Vendedora'}
       </Text>
+      <Text variant="bodyMedium" style={styles.muted}>
+        Município padrão: {me.city ? `${me.city}${me.state ? ` - ${me.state}` : ''}` : 'não informado'}
+      </Text>
       <Button mode="text" onPress={openEdit} style={styles.editButton}>
         Editar cadastro
       </Button>
@@ -139,6 +153,23 @@ export default function ProfileScreen() {
               onChangeText={setEditEmail}
               style={styles.dialogInput}
             />
+            <Text variant="labelLarge" style={styles.locationLabel}>
+              Município padrão (usado para pré-preencher novos clientes)
+            </Text>
+            <View style={styles.row}>
+              <View style={styles.stateInput}>
+                <StatePicker
+                  value={editState}
+                  onChange={(uf) => {
+                    setEditState(uf);
+                    if (editState !== uf) setEditCity('');
+                  }}
+                />
+              </View>
+              <View style={styles.rowItem}>
+                <CityPicker value={editCity} onChange={setEditCity} uf={editState} />
+              </View>
+            </View>
             <HelperText type="error" visible={!!editError}>
               {editError}
             </HelperText>
@@ -208,4 +239,8 @@ const styles = StyleSheet.create({
   sectionTitle: { marginTop: 24, marginBottom: 4 },
   passwordButton: { alignSelf: 'flex-start' },
   dialogInput: { marginTop: 8 },
+  locationLabel: { marginTop: 16 },
+  row: { flexDirection: 'row', gap: 8 },
+  rowItem: { flex: 3 },
+  stateInput: { flex: 1 },
 });
