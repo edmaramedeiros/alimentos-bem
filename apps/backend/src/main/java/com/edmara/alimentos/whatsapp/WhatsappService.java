@@ -1,6 +1,7 @@
 package com.edmara.alimentos.whatsapp;
 
 import com.edmara.alimentos.common.ResourceNotFoundException;
+import com.edmara.alimentos.common.ServiceUnavailableException;
 import com.edmara.alimentos.customer.Customer;
 import com.edmara.alimentos.customer.CustomerRepository;
 import com.edmara.alimentos.customer.dto.CustomerResponse;
@@ -13,12 +14,15 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 @Service
 public class WhatsappService {
@@ -44,7 +48,15 @@ public class WhatsappService {
         this.recipientRepository = recipientRepository;
         this.customerRepository = customerRepository;
         this.internalApiKey = internalApiKey;
-        this.internalRestClient = RestClient.builder().baseUrl(whatsappServiceUrl).build();
+
+        // O whatsapp-service roda no plano free do Render e hiberna após ociosidade;
+        // acordá-lo (reconectar a sessão Baileys) pode levar dezenas de segundos, por
+        // isso o timeout generoso — sem ele, a própria ação de "acordar o serviço"
+        // falha antes de dar tempo do serviço voltar a responder.
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(45_000);
+        requestFactory.setReadTimeout(45_000);
+        this.internalRestClient = RestClient.builder().baseUrl(whatsappServiceUrl).requestFactory(requestFactory).build();
     }
 
     @Transactional(readOnly = true)
@@ -106,29 +118,40 @@ public class WhatsappService {
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> sessionStatus(AppUser currentUser) {
-        return internalRestClient.get()
+        return callInternalService(() -> internalRestClient.get()
             .uri("/internal/session/{vendedorId}/status", currentUser.getId())
             .header("X-Internal-Api-Key", internalApiKey)
             .retrieve()
-            .body(Map.class);
+            .body(Map.class));
     }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> sessionQr(AppUser currentUser) {
-        return internalRestClient.get()
+        return callInternalService(() -> internalRestClient.get()
             .uri("/internal/session/{vendedorId}/qr", currentUser.getId())
             .header("X-Internal-Api-Key", internalApiKey)
             .retrieve()
-            .body(Map.class);
+            .body(Map.class));
     }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> disconnectSession(AppUser currentUser) {
-        return internalRestClient.post()
+        return callInternalService(() -> internalRestClient.post()
             .uri("/internal/session/{vendedorId}/logout", currentUser.getId())
             .header("X-Internal-Api-Key", internalApiKey)
             .retrieve()
-            .body(Map.class);
+            .body(Map.class));
+    }
+
+    private Map<String, Object> callInternalService(Supplier<Map<String, Object>> call) {
+        try {
+            return call.get();
+        } catch (RestClientException e) {
+            throw new ServiceUnavailableException(
+                "O serviço de WhatsApp está indisponível ou acordando após um período de inatividade. "
+                    + "Aguarde um instante e tente novamente."
+            );
+        }
     }
 
     private List<Customer> matchingCustomers(String cityFilter, String nameFilter, AppUser currentUser) {

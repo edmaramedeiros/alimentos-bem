@@ -94,7 +94,7 @@ export default function WhatsappScreen() {
         </Button>
       </View>
       {waking && (
-        <Text style={styles.muted}>Acordando o serviço... isso pode levar até 30 segundos se ele estiver hibernado.</Text>
+        <Text style={styles.muted}>Acordando o serviço... isso pode levar até 45 segundos se ele estiver hibernado.</Text>
       )}
       {wakeMessage && !waking && <Text style={styles.muted}>{wakeMessage}</Text>}
 

@@ -56,6 +56,12 @@ public class GlobalExceptionHandler {
             .body(ApiError.of(400, "Bad Request", ex.getMessage()));
     }
 
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ApiError> handleServiceUnavailable(ServiceUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(ApiError.of(503, "Service Unavailable", ex.getMessage()));
+    }
+
     /**
      * Fallback para qualquer exceção não mapeada acima. Sem isso, um erro inesperado
      * chega ao dispatch padrão do Spring para "/error", que o SecurityConfig trata como
