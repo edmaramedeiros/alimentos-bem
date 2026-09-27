@@ -225,7 +225,7 @@ public class SaleService {
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
             sale.setCashbackAmount(cashbackAmount);
             int validityDays = sale.getCashbackValidityDaysApplied() != null ? sale.getCashbackValidityDaysApplied() : 0;
-            sale.setCashbackExpiresAt(payment.getPaymentDate().atZone(DASHBOARD_ZONE).toLocalDate().plusDays(validityDays));
+            sale.setCashbackExpiresAt(sale.getSaleDate().atZone(DASHBOARD_ZONE).toLocalDate().plusDays(validityDays));
         }
 
         return SaleResponse.from(sale);

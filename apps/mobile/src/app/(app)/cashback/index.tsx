@@ -106,7 +106,7 @@ function CashbackConfigScreen() {
             <>
               <Text variant="headlineMedium">{formatPercent(config!.percentage!)}</Text>
               <Text variant="bodyMedium" style={styles.muted}>
-                Válido por {config!.validityDays} dia{config!.validityDays === 1 ? '' : 's'} após o pagamento da venda
+                Válido por {config!.validityDays} dia{config!.validityDays === 1 ? '' : 's'} a partir da data da venda
               </Text>
               {config?.updatedAt && (
                 <Text variant="bodySmall" style={styles.muted}>
