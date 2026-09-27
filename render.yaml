@@ -9,7 +9,7 @@ services:
     runtime: docker
     dockerContext: apps/backend
     dockerfilePath: apps/backend/Dockerfile
-    plan: free
+    plan: 0.5c-512mb
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
@@ -33,7 +33,7 @@ services:
     runtime: docker
     dockerContext: apps/whatsapp-service
     dockerfilePath: apps/whatsapp-service/Dockerfile
-    plan: free
+    plan: 0.5c-512mb
     envVars:
       - key: DATABASE_URL
         sync: false
