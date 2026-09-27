@@ -95,7 +95,31 @@ export type Sale = SaleSummary & {
   commissionRateApplied: number | null;
   commissionAmount: number | null;
   commissionStatus: CommissionStatus;
+  generatesCashback: boolean;
+  cashbackPercentageApplied: number | null;
+  cashbackAmount: number | null;
+  cashbackExpiresAt: string | null;
   items: SaleItem[];
+};
+
+export type CashbackConfig = {
+  percentage: number | null;
+  validityDays: number | null;
+  updatedAt: string | null;
+  updatedByName: string | null;
+};
+
+export type CashbackEntry = {
+  saleId: string;
+  saleDate: string;
+  amount: number;
+  expiresAt: string | null;
+  expired: boolean;
+};
+
+export type CashbackBalance = {
+  availableAmount: number;
+  entries: CashbackEntry[];
 };
 
 export type PaymentMethod = 'DINHEIRO' | 'PIX' | 'CARTAO' | 'TRANSFERENCIA' | 'OUTRO';

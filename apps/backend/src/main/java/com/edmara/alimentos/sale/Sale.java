@@ -16,6 +16,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,6 +54,21 @@ public class Sale extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "commission_status", nullable = false, length = 20)
     private CommissionStatus commissionStatus = CommissionStatus.PENDING;
+
+    @Column(name = "generates_cashback", nullable = false)
+    private boolean generatesCashback = false;
+
+    @Column(name = "cashback_percentage_applied", precision = 5, scale = 2)
+    private BigDecimal cashbackPercentageApplied;
+
+    @Column(name = "cashback_validity_days_applied")
+    private Integer cashbackValidityDaysApplied;
+
+    @Column(name = "cashback_amount", precision = 10, scale = 2)
+    private BigDecimal cashbackAmount;
+
+    @Column(name = "cashback_expires_at")
+    private LocalDate cashbackExpiresAt;
 
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("createdAt asc")
@@ -137,5 +153,45 @@ public class Sale extends BaseEntity {
 
     public List<SaleItem> getItems() {
         return items;
+    }
+
+    public boolean isGeneratesCashback() {
+        return generatesCashback;
+    }
+
+    public void setGeneratesCashback(boolean generatesCashback) {
+        this.generatesCashback = generatesCashback;
+    }
+
+    public BigDecimal getCashbackPercentageApplied() {
+        return cashbackPercentageApplied;
+    }
+
+    public void setCashbackPercentageApplied(BigDecimal cashbackPercentageApplied) {
+        this.cashbackPercentageApplied = cashbackPercentageApplied;
+    }
+
+    public Integer getCashbackValidityDaysApplied() {
+        return cashbackValidityDaysApplied;
+    }
+
+    public void setCashbackValidityDaysApplied(Integer cashbackValidityDaysApplied) {
+        this.cashbackValidityDaysApplied = cashbackValidityDaysApplied;
+    }
+
+    public BigDecimal getCashbackAmount() {
+        return cashbackAmount;
+    }
+
+    public void setCashbackAmount(BigDecimal cashbackAmount) {
+        this.cashbackAmount = cashbackAmount;
+    }
+
+    public LocalDate getCashbackExpiresAt() {
+        return cashbackExpiresAt;
+    }
+
+    public void setCashbackExpiresAt(LocalDate cashbackExpiresAt) {
+        this.cashbackExpiresAt = cashbackExpiresAt;
     }
 }

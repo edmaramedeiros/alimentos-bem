@@ -8,7 +8,7 @@ import { ActivityIndicator, Button, Chip, Dialog, IconButton, List, Portal, Radi
 import { ApiError } from '@/api/client';
 import { cancelSale, getPaymentAttachment, getSale, listPayments, markSaleAsDelivered, registerPayment } from '@/api/sales';
 import type { PaymentMethod } from '@/api/types';
-import { formatCurrencyBRL, formatDateTimeBR, formatPercent, paymentMethodLabel, saleStatusLabel } from '@/utils/format';
+import { formatCurrencyBRL, formatDateBR, formatDateTimeBR, formatPercent, paymentMethodLabel, saleStatusLabel } from '@/utils/format';
 import { openAttachment, openAttachmentWindow } from '@/utils/open-attachment';
 import { readAssetAsBase64 } from '@/utils/read-file-base64';
 
@@ -180,6 +180,18 @@ export default function SaleDetailScreen() {
           </Text>
           <Text variant="bodyMedium" style={styles.muted}>
             {formatCurrencyBRL(sale.commissionAmount)}
+          </Text>
+        </View>
+      )}
+
+      {sale.generatesCashback && (
+        <View style={styles.commissionRow}>
+          <Text variant="bodyMedium" style={styles.muted}>
+            Cashback ({formatPercent(sale.cashbackPercentageApplied ?? 0)})
+            {sale.cashbackExpiresAt ? ` · válido até ${formatDateBR(sale.cashbackExpiresAt)}` : ' · gerado ao confirmar o pagamento'}
+          </Text>
+          <Text variant="bodyMedium" style={styles.muted}>
+            {sale.cashbackAmount !== null ? formatCurrencyBRL(sale.cashbackAmount) : '—'}
           </Text>
         </View>
       )}

@@ -1,5 +1,7 @@
 package com.edmara.alimentos.sale;
 
+import com.edmara.alimentos.cashback.CashbackConfig;
+import com.edmara.alimentos.cashback.CashbackConfigRepository;
 import com.edmara.alimentos.commission.CommissionRateHistory;
 import com.edmara.alimentos.commission.CommissionRateHistoryRepository;
 import com.edmara.alimentos.common.ResourceNotFoundException;
@@ -53,6 +55,7 @@ public class SaleService {
     private final ProductPriceHistoryRepository priceHistoryRepository;
     private final CommissionRateHistoryRepository commissionRateHistoryRepository;
     private final PaymentRepository paymentRepository;
+    private final CashbackConfigRepository cashbackConfigRepository;
 
     public SaleService(
         SaleRepository saleRepository,
@@ -60,7 +63,8 @@ public class SaleService {
         ProductRepository productRepository,
         ProductPriceHistoryRepository priceHistoryRepository,
         CommissionRateHistoryRepository commissionRateHistoryRepository,
-        PaymentRepository paymentRepository
+        PaymentRepository paymentRepository,
+        CashbackConfigRepository cashbackConfigRepository
     ) {
         this.saleRepository = saleRepository;
         this.customerRepository = customerRepository;
@@ -68,6 +72,7 @@ public class SaleService {
         this.priceHistoryRepository = priceHistoryRepository;
         this.commissionRateHistoryRepository = commissionRateHistoryRepository;
         this.paymentRepository = paymentRepository;
+        this.cashbackConfigRepository = cashbackConfigRepository;
     }
 
     @Transactional(readOnly = true)
@@ -108,6 +113,17 @@ public class SaleService {
             .map(CommissionRateHistory::getRate)
             .orElse(BigDecimal.ZERO);
         sale.setCommissionRateApplied(commissionRate);
+
+        if (Boolean.TRUE.equals(request.generatesCashback())) {
+            if (customer == null) {
+                throw new IllegalArgumentException("Cashback exige um cliente identificado (não disponível para Consumidor)");
+            }
+            CashbackConfig cashbackConfig = cashbackConfigRepository.findFirstByOrderByCreatedAtAsc()
+                .orElseThrow(() -> new IllegalArgumentException("O cashback ainda não foi configurado"));
+            sale.setGeneratesCashback(true);
+            sale.setCashbackPercentageApplied(cashbackConfig.getPercentage());
+            sale.setCashbackValidityDaysApplied(cashbackConfig.getValidityDays());
+        }
 
         BigDecimal subtotal = BigDecimal.ZERO;
         for (SaleItemRequest itemRequest : request.items()) {
@@ -201,6 +217,16 @@ public class SaleService {
             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         sale.setCommissionAmount(commission);
         sale.setCommissionStatus(CommissionStatus.EARNED);
+
+        if (sale.isGeneratesCashback()) {
+            BigDecimal cashbackRate = sale.getCashbackPercentageApplied() != null ? sale.getCashbackPercentageApplied() : BigDecimal.ZERO;
+            BigDecimal cashbackAmount = sale.getTotalAmount()
+                .multiply(cashbackRate)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            sale.setCashbackAmount(cashbackAmount);
+            int validityDays = sale.getCashbackValidityDaysApplied() != null ? sale.getCashbackValidityDaysApplied() : 0;
+            sale.setCashbackExpiresAt(payment.getPaymentDate().atZone(DASHBOARD_ZONE).toLocalDate().plusDays(validityDays));
+        }
 
         return SaleResponse.from(sale);
     }

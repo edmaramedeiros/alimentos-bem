@@ -12,6 +12,7 @@ public record CreateSaleRequest(
     UUID customerId,
     Instant saleDate,
     @NotEmpty(message = "A venda precisa ter ao menos um item") @Valid List<SaleItemRequest> items,
-    @DecimalMin(value = "0", message = "Desconto não pode ser negativo") BigDecimal discountAmount
+    @DecimalMin(value = "0", message = "Desconto não pode ser negativo") BigDecimal discountAmount,
+    Boolean generatesCashback
 ) {
 }

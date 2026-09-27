@@ -17,4 +17,6 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
     List<Sale> findByVendedor_IdAndStatusNotOrderBySaleDateDesc(UUID vendedorId, SaleStatus status);
 
     List<Sale> findByStatusNotOrderBySaleDateDesc(SaleStatus status);
+
+    List<Sale> findByCustomer_IdAndGeneratesCashbackTrueAndCashbackAmountIsNotNullOrderBySaleDateDesc(UUID customerId);
 }

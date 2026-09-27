@@ -5,6 +5,7 @@ import com.edmara.alimentos.sale.Sale;
 import com.edmara.alimentos.sale.SaleStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +22,10 @@ public record SaleResponse(
     BigDecimal commissionRateApplied,
     BigDecimal commissionAmount,
     CommissionStatus commissionStatus,
+    boolean generatesCashback,
+    BigDecimal cashbackPercentageApplied,
+    BigDecimal cashbackAmount,
+    LocalDate cashbackExpiresAt,
     List<SaleItemResponse> items
 ) {
 
@@ -38,6 +43,10 @@ public record SaleResponse(
             sale.getCommissionRateApplied(),
             sale.getCommissionAmount(),
             sale.getCommissionStatus(),
+            sale.isGeneratesCashback(),
+            sale.getCashbackPercentageApplied(),
+            sale.getCashbackAmount(),
+            sale.getCashbackExpiresAt(),
             sale.getItems().stream().map(SaleItemResponse::from).toList()
         );
     }

@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Chip, List, Text } from 'react-native-paper';
 
+import { getCashbackBalance } from '@/api/cashback';
 import { ApiError } from '@/api/client';
 import { getCustomer, getDefaultLocation, updateCustomer } from '@/api/customers';
 import { CustomerForm, type CustomerFormData } from '@/components/customer-form';
+import { formatCurrencyBRL, formatDateBR, formatDateTimeBR } from '@/utils/format';
 
 export default function CustomerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,6 +18,11 @@ export default function CustomerDetailScreen() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const customerQuery = useQuery({ queryKey: ['customers', id], queryFn: () => getCustomer(id) });
+  const cashbackBalanceQuery = useQuery({
+    queryKey: ['cashback', 'balance', id],
+    queryFn: () => getCashbackBalance(id),
+    enabled: !editing,
+  });
 
   // Se o cliente ainda não tem município, sugere o município padrão cadastrado
   // no perfil da vendedora, pra não precisar selecionar de novo toda hora.
@@ -135,6 +142,31 @@ export default function CustomerDetailScreen() {
       <List.Item title="Grupo" description={customer.grupo ?? '—'} />
       <List.Item title="Cadastrado por" description={customer.ownerVendedorName} />
 
+      {cashbackBalanceQuery.data && cashbackBalanceQuery.data.entries.length > 0 && (
+        <>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Cashback
+          </Text>
+          <Text variant="headlineSmall">{formatCurrencyBRL(cashbackBalanceQuery.data.availableAmount)}</Text>
+          <Text variant="bodySmall" style={styles.muted}>
+            saldo disponível
+          </Text>
+          {cashbackBalanceQuery.data.entries.map((entry) => (
+            <List.Item
+              key={entry.saleId}
+              title={formatCurrencyBRL(entry.amount)}
+              description={
+                entry.expired
+                  ? `Expirou em ${formatDateBR(entry.expiresAt!)}`
+                  : `Venda de ${formatDateTimeBR(entry.saleDate)} · válido até ${formatDateBR(entry.expiresAt!)}`
+              }
+              titleStyle={entry.expired ? styles.expiredEntry : undefined}
+              descriptionStyle={entry.expired ? styles.expiredEntry : undefined}
+            />
+          ))}
+        </>
+      )}
+
       <Button mode="contained" onPress={() => setEditing(true)} style={styles.editButton}>
         Editar
       </Button>
@@ -147,6 +179,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   title: { marginBottom: 16 },
   chipRow: { flexDirection: 'row', gap: 8, marginVertical: 12 },
+  sectionTitle: { marginTop: 24, marginBottom: 4 },
+  muted: { opacity: 0.7 },
+  expiredEntry: { opacity: 0.5, textDecorationLine: 'line-through' },
   editButton: { marginTop: 24 },
   backButton: { marginTop: 8 },
 });

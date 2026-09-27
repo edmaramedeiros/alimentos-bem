@@ -2,14 +2,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, HelperText, IconButton, List, Portal, Searchbar, Text, TextInput } from 'react-native-paper';
+import { Button, Dialog, HelperText, IconButton, List, Portal, Searchbar, Switch, Text, TextInput } from 'react-native-paper';
 
 import { ApiError } from '@/api/client';
+import { getCashbackConfig } from '@/api/cashback';
 import { listCustomers } from '@/api/customers';
 import { listProducts } from '@/api/products';
 import { createSale } from '@/api/sales';
 import type { Customer } from '@/api/types';
-import { formatCurrencyBRL } from '@/utils/format';
+import { formatCurrencyBRL, formatPercent } from '@/utils/format';
 import { groupByCategory } from '@/utils/group-by-category';
 
 function parseQuantity(text: string): number {
@@ -27,9 +28,13 @@ export default function NewSaleScreen() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [discountText, setDiscountText] = useState('');
+  const [generatesCashback, setGeneratesCashback] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const cashbackConfigQuery = useQuery({ queryKey: ['cashback', 'config'], queryFn: getCashbackConfig });
+  const cashbackAvailable = !!customer && cashbackConfigQuery.data?.percentage != null;
 
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: () => listCustomers() });
   const filteredCustomers = useMemo(() => {
@@ -82,6 +87,7 @@ export default function NewSaleScreen() {
   const selectConsumer = () => {
     setCustomer(null);
     setIsConsumer(true);
+    setGeneratesCashback(false);
     setCustomerPickerVisible(false);
   };
 
@@ -94,6 +100,7 @@ export default function NewSaleScreen() {
         customerId: isConsumer ? null : (customer?.id ?? null),
         items: selectedItems.map((product) => ({ productId: product.id, quantity: quantities[product.id] })),
         discountAmount: discount > 0 ? discount : undefined,
+        generatesCashback: cashbackAvailable && generatesCashback,
       });
       await queryClient.invalidateQueries({ queryKey: ['sales'] });
       router.replace(`/sales/${sale.id}`);
@@ -221,6 +228,16 @@ export default function NewSaleScreen() {
         Desconto não pode ser maior que o subtotal da venda.
       </HelperText>
 
+      {cashbackAvailable && (
+        <View style={styles.cashbackRow}>
+          <Text variant="bodyMedium">
+            Gera cashback ({formatPercent(cashbackConfigQuery.data!.percentage!)}, válido por{' '}
+            {cashbackConfigQuery.data!.validityDays} dias)
+          </Text>
+          <Switch value={generatesCashback} onValueChange={setGeneratesCashback} />
+        </View>
+      )}
+
       <View style={styles.totalRow}>
         <Text variant="titleMedium">Total</Text>
         <Text variant="titleMedium">{formatCurrencyBRL(total)}</Text>
@@ -298,6 +315,7 @@ const styles = StyleSheet.create({
   discountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   discountInput: { width: 120, height: 40 },
   discountInputContent: { textAlign: 'right' },
+  cashbackRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 8 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#ECCFB1' },
   submitButton: { marginTop: 16, marginBottom: 32 },
   dialog: { maxHeight: '80%' },

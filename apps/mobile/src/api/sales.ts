@@ -36,6 +36,7 @@ export type CreateSaleInput = {
   customerId: string | null;
   items: CreateSaleItemInput[];
   discountAmount?: number;
+  generatesCashback?: boolean;
 };
 
 export function createSale(input: CreateSaleInput): Promise<Sale> {
