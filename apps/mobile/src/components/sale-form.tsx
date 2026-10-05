@@ -1,0 +1,350 @@
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Dialog, HelperText, IconButton, List, Portal, Searchbar, Switch, Text, TextInput } from 'react-native-paper';
+
+import { getCashbackConfig } from '@/api/cashback';
+import { listCustomers } from '@/api/customers';
+import { listProducts } from '@/api/products';
+import type { Customer } from '@/api/types';
+import { formatCurrencyBRL, formatPercent } from '@/utils/format';
+import { groupByCategory } from '@/utils/group-by-category';
+
+function parseQuantity(text: string): number {
+  const digitsOnly = text.replace(/[^0-9]/g, '');
+  if (!digitsOnly) return 0;
+  return Math.max(0, parseInt(digitsOnly, 10));
+}
+
+export type SaleFormValues = {
+  customerId: string | null;
+  items: { productId: string; quantity: number }[];
+  discountAmount?: number;
+  generatesCashback: boolean;
+};
+
+export function SaleForm({
+  title,
+  initialCustomer = null,
+  initialIsConsumer = false,
+  initialQuantities = {},
+  initialDiscountAmount = 0,
+  initialGeneratesCashback = false,
+  onSubmit,
+  submitting,
+  serverError,
+  submitLabel,
+}: {
+  title: string;
+  initialCustomer?: Customer | null;
+  initialIsConsumer?: boolean;
+  initialQuantities?: Record<string, number>;
+  initialDiscountAmount?: number;
+  initialGeneratesCashback?: boolean;
+  onSubmit: (values: SaleFormValues) => void;
+  submitting: boolean;
+  serverError: string | null;
+  submitLabel: string;
+}) {
+  const [customer, setCustomer] = useState<Customer | null>(initialCustomer);
+  const [isConsumer, setIsConsumer] = useState(initialIsConsumer);
+  const [customerPickerVisible, setCustomerPickerVisible] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [quantities, setQuantities] = useState<Record<string, number>>(initialQuantities);
+  const [discountText, setDiscountText] = useState(initialDiscountAmount > 0 ? String(initialDiscountAmount) : '');
+  const [generatesCashback, setGeneratesCashback] = useState(initialGeneratesCashback);
+
+  const cashbackConfigQuery = useQuery({ queryKey: ['cashback', 'config'], queryFn: getCashbackConfig });
+  const cashbackAvailable = !!customer && cashbackConfigQuery.data?.percentage != null;
+
+  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: () => listCustomers() });
+  const filteredCustomers = useMemo(() => {
+    const customers = customersQuery.data ?? [];
+    const normalized = customerSearch.trim().toLowerCase();
+    if (!normalized) return customers;
+    const normalizedDigits = normalized.replace(/\D/g, '');
+    return customers.filter((c) => {
+      const nameMatch = c.name.toLowerCase().includes(normalized);
+      const phoneDigits = (c.phone ?? '').replace(/\D/g, '');
+      const phoneMatch = normalizedDigits.length > 0 && phoneDigits.includes(normalizedDigits);
+      return nameMatch || phoneMatch;
+    });
+  }, [customersQuery.data, customerSearch]);
+
+  const openCustomerPicker = () => {
+    setCustomerSearch('');
+    setCustomerPickerVisible(true);
+  };
+
+  // Traz todos os produtos (não só os ativos) para que uma venda em edição que já
+  // tinha um produto hoje desativado continue mostrando essa linha para ajuste,
+  // em vez de descartar a quantidade silenciosamente ao salvar.
+  const productsQuery = useQuery({ queryKey: ['products', 'all'], queryFn: () => listProducts() });
+  const allProducts = productsQuery.data ?? [];
+  const visibleProducts = useMemo(
+    () => allProducts.filter((product) => product.active || (quantities[product.id] ?? 0) > 0),
+    [allProducts, quantities]
+  );
+  const productSections = useMemo(() => groupByCategory(visibleProducts), [visibleProducts]);
+
+  const setQuantity = (productId: string, value: number) => {
+    setQuantities((current) => ({ ...current, [productId]: Math.max(0, Math.floor(value)) }));
+  };
+
+  const selectedItems = useMemo(
+    () => visibleProducts.filter((product) => (quantities[product.id] ?? 0) > 0),
+    [visibleProducts, quantities]
+  );
+
+  const subtotal = useMemo(
+    () => selectedItems.reduce((sum, product) => sum + product.currentPrice * (quantities[product.id] ?? 0), 0),
+    [selectedItems, quantities]
+  );
+
+  const discount = Number(discountText.replace(',', '.')) || 0;
+  const total = Math.max(0, subtotal - discount);
+  const discountValid = discount >= 0 && discount <= subtotal;
+
+  const canSubmit = (isConsumer || !!customer) && selectedItems.length > 0 && discountValid && !submitting;
+
+  const selectCustomer = (c: Customer) => {
+    setCustomer(c);
+    setIsConsumer(false);
+    setCustomerPickerVisible(false);
+  };
+
+  const selectConsumer = () => {
+    setCustomer(null);
+    setIsConsumer(true);
+    setGeneratesCashback(false);
+    setCustomerPickerVisible(false);
+  };
+
+  const handleSubmit = () => {
+    if ((!customer && !isConsumer) || selectedItems.length === 0 || !discountValid) return;
+    onSubmit({
+      customerId: isConsumer ? null : (customer?.id ?? null),
+      items: selectedItems.map((product) => ({ productId: product.id, quantity: quantities[product.id] })),
+      discountAmount: discount > 0 ? discount : undefined,
+      generatesCashback: cashbackAvailable && generatesCashback,
+    });
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text variant="headlineSmall" style={styles.title}>
+        {title}
+      </Text>
+
+      <Text variant="titleMedium" style={styles.sectionTitle}>
+        Cliente
+      </Text>
+      {customer ? (
+        <List.Item
+          title={customer.name}
+          description={[customer.phone, customer.city].filter(Boolean).join(' · ') || undefined}
+          left={(props) => <List.Icon {...props} icon="account" />}
+          onPress={openCustomerPicker}
+        />
+      ) : isConsumer ? (
+        <List.Item
+          title="Consumidor"
+          description="Venda sem cliente identificado"
+          left={(props) => <List.Icon {...props} icon="account-question" />}
+          onPress={openCustomerPicker}
+        />
+      ) : (
+        <Button mode="outlined" onPress={openCustomerPicker} style={styles.pickButton}>
+          Selecionar cliente
+        </Button>
+      )}
+
+      <Text variant="titleMedium" style={styles.sectionTitle}>
+        Produtos
+      </Text>
+      {productsQuery.isLoading ? (
+        <Text style={styles.muted}>Carregando produtos...</Text>
+      ) : visibleProducts.length === 0 ? (
+        <Text style={styles.muted}>Nenhum produto ativo cadastrado.</Text>
+      ) : (
+        productSections.map((section) => (
+          <View key={section.title}>
+            <Text variant="labelLarge" style={styles.categoryHeader}>
+              {section.title}
+            </Text>
+            {section.data.map((product) => {
+              const qty = quantities[product.id] ?? 0;
+              return (
+                <View key={product.id} style={styles.productRow}>
+                  <View style={styles.productInfo}>
+                    <Text>
+                      {product.name}
+                      {!product.active ? ' (inativo)' : ''}
+                    </Text>
+                    <Text style={styles.muted}>
+                      {formatCurrencyBRL(product.currentPrice)} / {product.unit}
+                    </Text>
+                  </View>
+
+                  <View style={styles.stepper}>
+                    <IconButton
+                      icon="minus"
+                      size={18}
+                      mode="outlined"
+                      onPress={() => setQuantity(product.id, qty - 1)}
+                      disabled={qty <= 0}
+                      accessibilityLabel={`Diminuir quantidade de ${product.name}`}
+                    />
+                    <TextInput
+                      mode="outlined"
+                      dense
+                      keyboardType="number-pad"
+                      value={String(qty)}
+                      onChangeText={(text) => setQuantity(product.id, parseQuantity(text))}
+                      style={styles.qtyInput}
+                      contentStyle={styles.qtyInputContent}
+                    />
+                    <IconButton
+                      icon="plus"
+                      size={18}
+                      mode="outlined"
+                      disabled={!product.active}
+                      onPress={() => setQuantity(product.id, qty + 1)}
+                      accessibilityLabel={`Aumentar quantidade de ${product.name}`}
+                    />
+                  </View>
+
+                  <Text style={styles.subtotal}>{qty > 0 ? formatCurrencyBRL(product.currentPrice * qty) : '—'}</Text>
+                </View>
+              );
+            })}
+          </View>
+        ))
+      )}
+
+      <View style={styles.subtotalRow}>
+        <Text variant="bodyMedium" style={styles.muted}>
+          Subtotal
+        </Text>
+        <Text variant="bodyMedium" style={styles.muted}>
+          {formatCurrencyBRL(subtotal)}
+        </Text>
+      </View>
+
+      <View style={styles.discountRow}>
+        <Text variant="bodyMedium" style={styles.muted}>
+          Desconto
+        </Text>
+        <TextInput
+          mode="outlined"
+          dense
+          keyboardType="decimal-pad"
+          placeholder="0,00"
+          value={discountText}
+          onChangeText={setDiscountText}
+          style={styles.discountInput}
+          contentStyle={styles.discountInputContent}
+          error={!discountValid}
+        />
+      </View>
+      <HelperText type="error" visible={!discountValid}>
+        Desconto não pode ser maior que o subtotal da venda.
+      </HelperText>
+
+      {cashbackAvailable && (
+        <View style={styles.cashbackRow}>
+          <Text variant="bodyMedium">
+            Gera cashback ({formatPercent(cashbackConfigQuery.data!.percentage!)}, válido por{' '}
+            {cashbackConfigQuery.data!.validityDays} dias)
+          </Text>
+          <Switch value={generatesCashback} onValueChange={setGeneratesCashback} />
+        </View>
+      )}
+
+      <View style={styles.totalRow}>
+        <Text variant="titleMedium">Total</Text>
+        <Text variant="titleMedium">{formatCurrencyBRL(total)}</Text>
+      </View>
+
+      <HelperText type="error" visible={!!serverError}>
+        {serverError}
+      </HelperText>
+
+      <Button mode="contained" onPress={handleSubmit} loading={submitting} disabled={!canSubmit} style={styles.submitButton}>
+        {submitLabel}
+      </Button>
+
+      <Portal>
+        <Dialog visible={customerPickerVisible} onDismiss={() => setCustomerPickerVisible(false)} style={styles.dialog}>
+          <Dialog.Title>Selecionar cliente</Dialog.Title>
+          <View style={styles.searchWrapper}>
+            <Searchbar placeholder="Buscar por nome ou telefone" value={customerSearch} onChangeText={setCustomerSearch} />
+          </View>
+          <List.Item
+            title="Consumidor"
+            description="Venda sem cliente identificado"
+            left={(props) => <List.Icon {...props} icon="account-question" />}
+            onPress={selectConsumer}
+            style={styles.consumerOption}
+          />
+          <Dialog.ScrollArea style={styles.dialogScroll}>
+            {customersQuery.data?.length ? (
+              <FlatList
+                data={filteredCustomers}
+                keyExtractor={(c) => c.id}
+                renderItem={({ item: c }) => (
+                  <List.Item
+                    title={c.name}
+                    description={[c.phone, c.city].filter(Boolean).join(' · ') || undefined}
+                    onPress={() => selectCustomer(c)}
+                  />
+                )}
+                ListEmptyComponent={<Text style={styles.emptyDialog}>Nenhum cliente encontrado.</Text>}
+              />
+            ) : (
+              <Text style={styles.emptyDialog}>Nenhum cliente cadastrado ainda.</Text>
+            )}
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setCustomerPickerVisible(false)}>Fechar</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 24 },
+  title: { marginBottom: 8 },
+  sectionTitle: { marginTop: 24, marginBottom: 4 },
+  pickButton: { marginTop: 8 },
+  categoryHeader: { marginTop: 16, opacity: 0.7 },
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECCFB1',
+    gap: 8,
+  },
+  productInfo: { flex: 1, minWidth: 120 },
+  stepper: { flexDirection: 'row', alignItems: 'center' },
+  qtyInput: { width: 56, height: 40, textAlign: 'center' },
+  qtyInputContent: { textAlign: 'center' },
+  subtotal: { fontWeight: '600', minWidth: 90, textAlign: 'right' },
+  subtotalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
+  discountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  discountInput: { width: 120, height: 40 },
+  discountInputContent: { textAlign: 'right' },
+  cashbackRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 8 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#ECCFB1' },
+  submitButton: { marginTop: 16, marginBottom: 32 },
+  dialog: { maxHeight: '80%' },
+  searchWrapper: { paddingHorizontal: 24, paddingBottom: 8 },
+  consumerOption: { borderBottomWidth: 1, borderBottomColor: '#ECCFB1' },
+  dialogScroll: { maxHeight: 400 },
+  emptyDialog: { padding: 16, opacity: 0.6 },
+  muted: { opacity: 0.7 },
+});

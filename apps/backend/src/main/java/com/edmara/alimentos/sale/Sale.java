@@ -99,6 +99,10 @@ public class Sale extends BaseEntity {
         return customer;
     }
 
+    public void setCustomer(Customer customer) {
+        this.customer = customer;
+    }
+
     public Instant getSaleDate() {
         return saleDate;
     }

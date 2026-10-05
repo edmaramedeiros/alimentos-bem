@@ -8,6 +8,7 @@ import com.edmara.alimentos.sale.dto.DailySalesPointResponse;
 import com.edmara.alimentos.sale.dto.MonthlySalesPointResponse;
 import com.edmara.alimentos.sale.dto.SaleResponse;
 import com.edmara.alimentos.sale.dto.SaleSummaryResponse;
+import com.edmara.alimentos.sale.dto.UpdateSaleRequest;
 import com.edmara.alimentos.user.AppUser;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,6 +51,15 @@ public class SaleController {
         @AuthenticationPrincipal AppUser currentUser
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(saleService.create(request, currentUser));
+    }
+
+    @PatchMapping("/{id}")
+    public SaleResponse update(
+        @PathVariable UUID id,
+        @Valid @RequestBody UpdateSaleRequest request,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return saleService.update(id, request, currentUser);
     }
 
     @PostMapping("/{id}/cancel")

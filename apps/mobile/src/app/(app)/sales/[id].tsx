@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Chip, Dialog, IconButton, List, Portal, RadioButton, Text } from 'react-native-paper';
@@ -230,6 +230,12 @@ export default function SaleDetailScreen() {
       )}
 
       {canCancel && (
+        <Button mode="outlined" style={styles.editButton} onPress={() => router.push(`/sales/${id}/edit`)}>
+          Editar venda
+        </Button>
+      )}
+
+      {canCancel && (
         <Button mode="outlined" textColor="#A74C39" style={styles.cancelButton} onPress={() => setConfirmVisible(true)}>
           Cancelar venda
         </Button>
@@ -321,6 +327,7 @@ const styles = StyleSheet.create({
   commissionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   attachmentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   payButton: { marginTop: 24 },
+  editButton: { marginTop: 24 },
   cancelButton: { marginTop: 12 },
   errorText: { color: '#A74C39', marginTop: 8 },
   attachmentLabel: { marginTop: 16, marginBottom: 4 },

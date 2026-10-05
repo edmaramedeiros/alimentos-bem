@@ -22,6 +22,7 @@ import com.edmara.alimentos.sale.dto.MonthlySalesPointResponse;
 import com.edmara.alimentos.sale.dto.SaleItemRequest;
 import com.edmara.alimentos.sale.dto.SaleResponse;
 import com.edmara.alimentos.sale.dto.SaleSummaryResponse;
+import com.edmara.alimentos.sale.dto.UpdateSaleRequest;
 import com.edmara.alimentos.user.AppUser;
 import com.edmara.alimentos.user.Role;
 import java.math.BigDecimal;
@@ -92,29 +93,71 @@ public class SaleService {
 
     @Transactional
     public SaleResponse create(CreateSaleRequest request, AppUser currentUser) {
-        Customer customer = null;
-        if (request.customerId() != null) {
-            customer = customerRepository.findById(request.customerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado: " + request.customerId()));
-
-            boolean isOwnCustomer = customer.getOwnerVendedor().getId().equals(currentUser.getId());
-            if (currentUser.getRole() != Role.ADMIN && !isOwnCustomer) {
-                throw new AccessDeniedException("Você só pode lançar vendas para os seus próprios clientes");
-            }
-        }
+        Customer customer = resolveCustomer(request.customerId(), currentUser);
 
         Instant saleDate = request.saleDate() != null ? request.saleDate() : Instant.now();
         Sale sale = new Sale(currentUser, customer, saleDate);
 
-        // Trava a taxa de comissão vigente do vendedor no momento da venda (ADR 0001/0002),
-        // igual ao lock de preço dos produtos. Se o vendedor ainda não tem taxa configurada,
-        // assume 0% em vez de bloquear o lançamento da venda.
+        lockCommissionRate(sale, currentUser);
+        applyCashbackSelection(sale, customer, request.generatesCashback());
+        applyItemsAndDiscount(sale, request.items(), request.discountAmount());
+
+        return SaleResponse.from(saleRepository.save(sale));
+    }
+
+    @Transactional
+    public SaleResponse update(UUID id, UpdateSaleRequest request, AppUser currentUser) {
+        Sale sale = findSale(id);
+        assertOwnership(sale, currentUser);
+        if (sale.getStatus() == SaleStatus.PAID) {
+            throw new IllegalArgumentException("Não é possível editar uma venda já paga");
+        }
+        if (sale.getStatus() == SaleStatus.CANCELLED) {
+            throw new IllegalArgumentException("Não é possível editar uma venda cancelada");
+        }
+
+        Customer customer = resolveCustomer(request.customerId(), currentUser);
+        sale.setCustomer(customer);
+
+        // Reaproveita a mesma trava de preço/comissão/cashback do lançamento (ADR 0001/0002):
+        // como a venda ainda não foi paga, re-travar no momento da edição é equivalente a
+        // cancelar e relançar, só que sem perder o histórico/id da venda original.
+        lockCommissionRate(sale, currentUser);
+        applyCashbackSelection(sale, customer, request.generatesCashback());
+        sale.getItems().clear();
+        applyItemsAndDiscount(sale, request.items(), request.discountAmount());
+
+        // Força o flush para os itens novos saírem com id preenchido na resposta
+        // (sem isso, o dirty-checking só gera o INSERT no commit da transação).
+        return SaleResponse.from(saleRepository.saveAndFlush(sale));
+    }
+
+    private Customer resolveCustomer(UUID customerId, AppUser currentUser) {
+        if (customerId == null) {
+            return null;
+        }
+        Customer customer = customerRepository.findById(customerId)
+            .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado: " + customerId));
+
+        boolean isOwnCustomer = customer.getOwnerVendedor().getId().equals(currentUser.getId());
+        if (currentUser.getRole() != Role.ADMIN && !isOwnCustomer) {
+            throw new AccessDeniedException("Você só pode lançar vendas para os seus próprios clientes");
+        }
+        return customer;
+    }
+
+    // Trava a taxa de comissão vigente do vendedor no momento da venda (ADR 0001/0002),
+    // igual ao lock de preço dos produtos. Se o vendedor ainda não tem taxa configurada,
+    // assume 0% em vez de bloquear o lançamento da venda.
+    private void lockCommissionRate(Sale sale, AppUser currentUser) {
         BigDecimal commissionRate = commissionRateHistoryRepository.findByVendedor_IdAndEffectiveToIsNull(currentUser.getId())
             .map(CommissionRateHistory::getRate)
             .orElse(BigDecimal.ZERO);
         sale.setCommissionRateApplied(commissionRate);
+    }
 
-        if (Boolean.TRUE.equals(request.generatesCashback())) {
+    private void applyCashbackSelection(Sale sale, Customer customer, Boolean generatesCashback) {
+        if (Boolean.TRUE.equals(generatesCashback)) {
             if (customer == null) {
                 throw new IllegalArgumentException("Cashback exige um cliente identificado (não disponível para Consumidor)");
             }
@@ -123,21 +166,25 @@ public class SaleService {
             sale.setGeneratesCashback(true);
             sale.setCashbackPercentageApplied(cashbackConfig.getPercentage());
             sale.setCashbackValidityDaysApplied(cashbackConfig.getValidityDays());
+        } else {
+            sale.setGeneratesCashback(false);
+            sale.setCashbackPercentageApplied(null);
+            sale.setCashbackValidityDaysApplied(null);
         }
+    }
 
+    private void applyItemsAndDiscount(Sale sale, List<SaleItemRequest> itemRequests, BigDecimal discountAmount) {
         BigDecimal subtotal = BigDecimal.ZERO;
-        for (SaleItemRequest itemRequest : request.items()) {
+        for (SaleItemRequest itemRequest : itemRequests) {
             subtotal = subtotal.add(addItem(sale, itemRequest));
         }
 
-        BigDecimal discount = request.discountAmount() != null ? request.discountAmount() : BigDecimal.ZERO;
+        BigDecimal discount = discountAmount != null ? discountAmount : BigDecimal.ZERO;
         if (discount.compareTo(subtotal) > 0) {
             throw new IllegalArgumentException("Desconto não pode ser maior que o total da venda");
         }
         sale.setDiscountAmount(discount);
         sale.setTotalAmount(subtotal.subtract(discount));
-
-        return SaleResponse.from(saleRepository.save(sale));
     }
 
     private BigDecimal addItem(Sale sale, SaleItemRequest itemRequest) {

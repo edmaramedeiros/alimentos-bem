@@ -43,6 +43,10 @@ export function createSale(input: CreateSaleInput): Promise<Sale> {
   return apiRequest<Sale>('/api/sales', { method: 'POST', body: input });
 }
 
+export function updateSale(id: string, input: CreateSaleInput): Promise<Sale> {
+  return apiRequest<Sale>(`/api/sales/${id}`, { method: 'PATCH', body: input });
+}
+
 export function cancelSale(id: string): Promise<Sale> {
   return apiRequest<Sale>(`/api/sales/${id}/cancel`, { method: 'POST' });
 }
