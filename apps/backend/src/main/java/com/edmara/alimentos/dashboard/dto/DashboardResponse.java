@@ -6,6 +6,7 @@ import java.util.List;
 public record DashboardResponse(
     String month,
     BigDecimal revenue,
+    BigDecimal toReceive,
     BigDecimal expenses,
     BigDecimal profit,
     List<ProductRanking> topProducts,

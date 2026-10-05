@@ -61,6 +61,14 @@ function DashboardContent() {
             <Card style={styles.kpiCard}>
               <Card.Content>
                 <Text variant="labelMedium" style={styles.muted}>
+                  A receber
+                </Text>
+                <Text variant="titleMedium">{formatCurrencyBRL(data.toReceive)}</Text>
+              </Card.Content>
+            </Card>
+            <Card style={styles.kpiCard}>
+              <Card.Content>
+                <Text variant="labelMedium" style={styles.muted}>
                   Despesas
                 </Text>
                 <Text variant="titleMedium">{formatCurrencyBRL(data.expenses)}</Text>
@@ -164,8 +172,8 @@ const styles = StyleSheet.create({
   container: { padding: 16, gap: 12 },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   loading: { marginTop: 32 },
-  kpiRow: { flexDirection: 'row', gap: 8 },
-  kpiCard: { flex: 1 },
+  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  kpiCard: { flexBasis: '48%', flexGrow: 1 },
   card: { marginTop: 4 },
   cardTitle: { marginBottom: 8 },
   muted: { opacity: 0.7 },

@@ -209,6 +209,7 @@ export type WhatsappSessionStatus = {
 export type DashboardIndicators = {
   month: string;
   revenue: number;
+  toReceive: number;
   expenses: number;
   profit: number;
   topProducts: { name: string; quantity: number; revenue: number }[];

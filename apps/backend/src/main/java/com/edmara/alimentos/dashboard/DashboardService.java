@@ -62,6 +62,10 @@ public class DashboardService {
         MonthPoint selected = history.get(history.size() - 1);
 
         List<Sale> selectedSales = salesByMonth.getOrDefault(month, List.of());
+        BigDecimal toReceive = selectedSales.stream()
+            .filter(sale -> sale.getStatus() != SaleStatus.PAID)
+            .map(Sale::getTotalAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
         Map<String, BigDecimal> quantityByProduct = new HashMap<>();
         Map<String, BigDecimal> revenueByProduct = new HashMap<>();
         Map<String, String> productNames = new HashMap<>();
@@ -115,6 +119,7 @@ public class DashboardService {
         return new DashboardResponse(
             month.toString(),
             selected.revenue(),
+            toReceive,
             selected.expenses(),
             selected.profit(),
             topProducts,
