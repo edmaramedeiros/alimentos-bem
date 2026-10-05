@@ -1,5 +1,6 @@
 package com.edmara.alimentos.sale;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,4 +20,6 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
     List<Sale> findByStatusNotOrderBySaleDateDesc(SaleStatus status);
 
     List<Sale> findByCustomer_IdAndGeneratesCashbackTrueAndCashbackAmountIsNotNullOrderBySaleDateDesc(UUID customerId);
+
+    List<Sale> findBySaleDateGreaterThanEqualAndSaleDateLessThanAndStatusNot(Instant from, Instant to, SaleStatus status);
 }

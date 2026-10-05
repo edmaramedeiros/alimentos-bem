@@ -23,6 +23,7 @@ const LIST_ROUTES = new Set([
   '/profile',
   '/expenses',
   '/cashback',
+  '/dashboard',
 ]);
 
 /** Para /products/123 ou /products/new, devolve a tela de listagem "/products". */
@@ -67,6 +68,7 @@ export function AppHeader() {
         {isAdmin && <Menu.Item title="Usuários" onPress={() => navigate('/users')} />}
         {isAdmin && <Menu.Item title="Despesas" onPress={() => navigate('/expenses')} />}
         {isAdmin && <Menu.Item title="Cashback" onPress={() => navigate('/cashback')} />}
+        {isAdmin && <Menu.Item title="Indicadores" onPress={() => navigate('/dashboard')} />}
         <Menu.Item title="WhatsApp" onPress={() => navigate('/whatsapp')} />
         <Menu.Item title="Meu perfil" onPress={() => navigate('/profile')} />
       </Menu>

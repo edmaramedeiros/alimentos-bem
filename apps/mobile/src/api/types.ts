@@ -205,3 +205,14 @@ export type WhatsappSessionStatus = {
   phoneNumber: string | null;
   waitingForQr: boolean;
 };
+
+export type DashboardIndicators = {
+  month: string;
+  received: number;
+  expenses: number;
+  profit: number;
+  topProducts: { name: string; quantity: number; revenue: number }[];
+  categories: { name: string; revenue: number; percentage: number }[];
+  topCustomers: { name: string; revenue: number; saleCount: number }[];
+  profitHistory: { month: string; received: number; expenses: number; profit: number }[];
+};
