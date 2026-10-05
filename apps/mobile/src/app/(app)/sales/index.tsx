@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   rightColumn: { alignItems: 'flex-end', gap: 4, justifyContent: 'center' },
   total: { fontWeight: '600' },
   empty: { textAlign: 'center', marginTop: 32, opacity: 0.6 },
-  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, paddingBottom: 80 },
   fab: { position: 'absolute', right: 16, bottom: 16 },
   dialog: { maxHeight: '80%' },
   searchWrapper: { paddingHorizontal: 24, paddingBottom: 8 },

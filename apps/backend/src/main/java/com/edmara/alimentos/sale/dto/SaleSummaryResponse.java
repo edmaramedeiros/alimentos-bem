@@ -18,7 +18,7 @@ public record SaleSummaryResponse(
     int itemCount
 ) {
 
-    public static SaleSummaryResponse from(Sale sale) {
+    public static SaleSummaryResponse from(Sale sale, int itemCount) {
         return new SaleSummaryResponse(
             sale.getId(),
             sale.getVendedor().getId(),
@@ -28,7 +28,7 @@ public record SaleSummaryResponse(
             sale.getSaleDate(),
             sale.getStatus(),
             sale.getTotalAmount(),
-            sale.getItems().size()
+            itemCount
         );
     }
 }

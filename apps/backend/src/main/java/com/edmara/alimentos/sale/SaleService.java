@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,7 +82,24 @@ public class SaleService {
         List<Sale> sales = currentUser.getRole() == Role.ADMIN
             ? saleRepository.findAllByOrderBySaleDateDesc()
             : saleRepository.findByVendedor_IdOrderBySaleDateDesc(currentUser.getId());
-        return sales.stream().map(SaleSummaryResponse::from).toList();
+
+        if (sales.isEmpty()) {
+            return List.of();
+        }
+
+        // Conta os itens de todas as vendas numa única query extra, em vez de deixar
+        // sale.getItems().size() disparar uma query lazy por venda (N+1) — numa base
+        // com centenas de vendas isso é a diferença entre instantâneo e minutos.
+        List<UUID> saleIds = sales.stream().map(Sale::getId).toList();
+        Map<UUID, Integer> itemCountBySaleId = saleRepository.countItemsBySaleIds(saleIds).stream()
+            .collect(Collectors.toMap(
+                SaleRepository.SaleItemCountProjection::getSaleId,
+                projection -> (int) projection.getCount()
+            ));
+
+        return sales.stream()
+            .map(sale -> SaleSummaryResponse.from(sale, itemCountBySaleId.getOrDefault(sale.getId(), 0)))
+            .toList();
     }
 
     @Transactional(readOnly = true)
