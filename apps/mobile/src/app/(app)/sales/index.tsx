@@ -11,6 +11,9 @@ import { useAuthStore } from '@/store/auth-store';
 import { formatCurrencyBRL, formatDateTimeBR, saleStatusLabel } from '@/utils/format';
 
 const STATUS_OPTIONS: SaleStatus[] = ['AWAITING_DELIVERY', 'AWAITING_PAYMENT', 'PAID', 'CANCELLED'];
+const PENDING_STATUSES: SaleStatus[] = ['AWAITING_DELIVERY', 'AWAITING_PAYMENT'];
+const PENDING_FILTER = 'PENDING';
+type StatusFilter = SaleStatus | typeof PENDING_FILTER | null;
 
 // Vendas para "Consumidor" têm customerId null; usa um sentinel distinto de null
 // (que já significa "sem filtro") para poder filtrar só por elas na busca.
@@ -32,7 +35,7 @@ export default function SalesScreen() {
 
   const [customerFilter, setCustomerFilter] = useState<string | null>(null);
   const [vendedorFilter, setVendedorFilter] = useState<string | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState<SaleStatus | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(PENDING_FILTER);
   const [customerDialogVisible, setCustomerDialogVisible] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
@@ -68,7 +71,11 @@ export default function SalesScreen() {
         return false;
       }
       if (vendedorFilter && sale.vendedorId !== vendedorFilter) return false;
-      if (statusFilter && sale.status !== statusFilter) return false;
+      if (statusFilter === PENDING_FILTER) {
+        if (!PENDING_STATUSES.includes(sale.status)) return false;
+      } else if (statusFilter && sale.status !== statusFilter) {
+        return false;
+      }
       return true;
     });
   }, [data, customerFilter, vendedorFilter, statusFilter]);
@@ -110,10 +117,17 @@ export default function SalesScreen() {
           onDismiss={() => setStatusMenuVisible(false)}
           anchor={
             <Button mode="outlined" onPress={() => setStatusMenuVisible(true)} style={styles.filterButton}>
-              {statusFilter ? `Situação: ${saleStatusLabel(statusFilter)}` : 'Situação: todas'}
+              {statusFilterLabel(statusFilter)}
             </Button>
           }
         >
+          <Menu.Item
+            title="Pendentes (entrega ou pagamento)"
+            onPress={() => {
+              setStatusFilter(PENDING_FILTER);
+              setStatusMenuVisible(false);
+            }}
+          />
           <Menu.Item
             title="Todas"
             onPress={() => {
@@ -200,6 +214,12 @@ export default function SalesScreen() {
       </Portal>
     </View>
   );
+}
+
+function statusFilterLabel(filter: StatusFilter): string {
+  if (filter === PENDING_FILTER) return 'Situação: pendentes';
+  if (filter) return `Situação: ${saleStatusLabel(filter)}`;
+  return 'Situação: todas';
 }
 
 function statusChipStyle(status: string) {
