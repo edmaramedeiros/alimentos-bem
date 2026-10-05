@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Chip, Dialog, FAB, List, Menu, Portal, Searchbar, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Chip, Dialog, FAB, IconButton, List, Menu, Portal, Searchbar, Text } from 'react-native-paper';
 
 import { listSales } from '@/api/sales';
 import type { SaleStatus } from '@/api/types';
@@ -13,6 +13,7 @@ import { formatCurrencyBRL, formatDateTimeBR, saleStatusLabel } from '@/utils/fo
 const STATUS_OPTIONS: SaleStatus[] = ['AWAITING_DELIVERY', 'AWAITING_PAYMENT', 'PAID', 'CANCELLED'];
 const PENDING_STATUSES: SaleStatus[] = ['AWAITING_DELIVERY', 'AWAITING_PAYMENT'];
 const PENDING_FILTER = 'PENDING';
+const PAGE_SIZE = 20;
 type StatusFilter = SaleStatus | typeof PENDING_FILTER | null;
 
 // Vendas para "Consumidor" têm customerId null; usa um sentinel distinto de null
@@ -79,6 +80,18 @@ export default function SalesScreen() {
       return true;
     });
   }, [data, customerFilter, vendedorFilter, statusFilter]);
+
+  const [page, setPage] = useState(0);
+  useEffect(() => {
+    setPage(0);
+  }, [customerFilter, vendedorFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSales.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const pageSales = useMemo(
+    () => filteredSales.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
+    [filteredSales, currentPage]
+  );
 
   const selectedCustomerName = customerFilter ? customerOptions.find(([id]) => id === customerFilter)?.[1] : null;
 
@@ -149,7 +162,7 @@ export default function SalesScreen() {
       </View>
 
       <FlatList
-        data={filteredSales}
+        data={pageSales}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <List.Item
@@ -174,6 +187,25 @@ export default function SalesScreen() {
           </Text>
         }
       />
+      {filteredSales.length > PAGE_SIZE && (
+        <View style={styles.pagination}>
+          <IconButton
+            icon="chevron-left"
+            disabled={currentPage === 0}
+            onPress={() => setPage(currentPage - 1)}
+            accessibilityLabel="Página anterior"
+          />
+          <Text>
+            Página {currentPage + 1} de {totalPages}
+          </Text>
+          <IconButton
+            icon="chevron-right"
+            disabled={currentPage >= totalPages - 1}
+            onPress={() => setPage(currentPage + 1)}
+            accessibilityLabel="Próxima página"
+          />
+        </View>
+      )}
       <FAB icon="plus" style={styles.fab} label="Nova venda" onPress={() => router.push('/sales/new')} />
 
       <Portal>
@@ -237,6 +269,7 @@ const styles = StyleSheet.create({
   rightColumn: { alignItems: 'flex-end', gap: 4, justifyContent: 'center' },
   total: { fontWeight: '600' },
   empty: { textAlign: 'center', marginTop: 32, opacity: 0.6 },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
   fab: { position: 'absolute', right: 16, bottom: 16 },
   dialog: { maxHeight: '80%' },
   searchWrapper: { paddingHorizontal: 24, paddingBottom: 8 },
