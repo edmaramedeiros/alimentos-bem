@@ -7,8 +7,6 @@ import com.edmara.alimentos.dashboard.dto.DashboardResponse.MonthPoint;
 import com.edmara.alimentos.dashboard.dto.DashboardResponse.ProductRanking;
 import com.edmara.alimentos.expense.Expense;
 import com.edmara.alimentos.expense.ExpenseRepository;
-import com.edmara.alimentos.payment.Payment;
-import com.edmara.alimentos.payment.PaymentRepository;
 import com.edmara.alimentos.sale.Sale;
 import com.edmara.alimentos.sale.SaleItem;
 import com.edmara.alimentos.sale.SaleRepository;
@@ -35,31 +33,35 @@ public class DashboardService {
     private static final int TOP_LIMIT = 5;
     private static final String SEM_CATEGORIA = "Sem categoria";
 
-    private final PaymentRepository paymentRepository;
     private final ExpenseRepository expenseRepository;
     private final SaleRepository saleRepository;
 
-    public DashboardService(
-        PaymentRepository paymentRepository,
-        ExpenseRepository expenseRepository,
-        SaleRepository saleRepository
-    ) {
-        this.paymentRepository = paymentRepository;
+    public DashboardService(ExpenseRepository expenseRepository, SaleRepository saleRepository) {
         this.expenseRepository = expenseRepository;
         this.saleRepository = saleRepository;
     }
 
     @Transactional(readOnly = true)
     public DashboardResponse indicators(YearMonth month) {
-        List<MonthPoint> history = profitHistory(month);
-        MonthPoint selected = history.get(history.size() - 1);
-
-        Instant monthStart = month.atDay(1).atStartOfDay(ZONE).toInstant();
-        Instant nextMonthStart = month.plusMonths(1).atDay(1).atStartOfDay(ZONE).toInstant();
+        YearMonth startMonth = month.minusMonths(HISTORY_MONTHS - 1);
+        Instant windowStart = startMonth.atDay(1).atStartOfDay(ZONE).toInstant();
+        Instant windowEnd = month.plusMonths(1).atDay(1).atStartOfDay(ZONE).toInstant();
         List<Sale> sales = saleRepository.findBySaleDateGreaterThanEqualAndSaleDateLessThanAndStatusNot(
-            monthStart, nextMonthStart, SaleStatus.CANCELLED
+            windowStart, windowEnd, SaleStatus.CANCELLED
         );
 
+        Map<YearMonth, BigDecimal> revenueByMonth = new HashMap<>();
+        Map<YearMonth, List<Sale>> salesByMonth = new HashMap<>();
+        for (Sale sale : sales) {
+            YearMonth saleMonth = YearMonth.from(sale.getSaleDate().atZone(ZONE).toLocalDate());
+            revenueByMonth.merge(saleMonth, sale.getTotalAmount(), BigDecimal::add);
+            salesByMonth.computeIfAbsent(saleMonth, k -> new ArrayList<>()).add(sale);
+        }
+
+        List<MonthPoint> history = profitHistory(startMonth, revenueByMonth);
+        MonthPoint selected = history.get(history.size() - 1);
+
+        List<Sale> selectedSales = salesByMonth.getOrDefault(month, List.of());
         Map<String, BigDecimal> quantityByProduct = new HashMap<>();
         Map<String, BigDecimal> revenueByProduct = new HashMap<>();
         Map<String, String> productNames = new HashMap<>();
@@ -68,7 +70,7 @@ public class DashboardService {
         Map<UUID, Integer> salesByCustomer = new HashMap<>();
         Map<UUID, String> customerNames = new HashMap<>();
 
-        for (Sale sale : sales) {
+        for (Sale sale : selectedSales) {
             if (sale.getCustomer() != null) {
                 UUID customerId = sale.getCustomer().getId();
                 customerNames.put(customerId, sale.getCustomer().getName());
@@ -112,7 +114,7 @@ public class DashboardService {
 
         return new DashboardResponse(
             month.toString(),
-            selected.received(),
+            selected.revenue(),
             selected.expenses(),
             selected.profit(),
             topProducts,
@@ -122,20 +124,12 @@ public class DashboardService {
         );
     }
 
-    private List<MonthPoint> profitHistory(YearMonth endMonth) {
-        YearMonth startMonth = endMonth.minusMonths(HISTORY_MONTHS - 1);
-        Instant from = startMonth.atDay(1).atStartOfDay(ZONE).toInstant();
-        Instant to = endMonth.plusMonths(1).atDay(1).atStartOfDay(ZONE).toInstant();
-
-        Map<YearMonth, BigDecimal> receivedByMonth = new HashMap<>();
-        for (Payment payment : paymentRepository.findByPaymentDateGreaterThanEqualAndPaymentDateLessThan(from, to)) {
-            YearMonth paidIn = YearMonth.from(payment.getPaymentDate().atZone(ZONE).toLocalDate());
-            receivedByMonth.merge(paidIn, payment.getAmount(), BigDecimal::add);
-        }
-
-        Map<YearMonth, BigDecimal> expensesByMonth = new HashMap<>();
+    private List<MonthPoint> profitHistory(YearMonth startMonth, Map<YearMonth, BigDecimal> revenueByMonth) {
+        YearMonth endMonth = startMonth.plusMonths(HISTORY_MONTHS - 1);
         LocalDate fromDate = startMonth.atDay(1);
         LocalDate toDate = endMonth.plusMonths(1).atDay(1);
+
+        Map<YearMonth, BigDecimal> expensesByMonth = new HashMap<>();
         for (Expense expense : expenseRepository.findByExpenseDateGreaterThanEqualAndExpenseDateLessThan(fromDate, toDate)) {
             expensesByMonth.merge(YearMonth.from(expense.getExpenseDate()), expense.getAmount(), BigDecimal::add);
         }
@@ -143,9 +137,9 @@ public class DashboardService {
         List<MonthPoint> history = new ArrayList<>();
         for (int i = 0; i < HISTORY_MONTHS; i++) {
             YearMonth current = startMonth.plusMonths(i);
-            BigDecimal received = receivedByMonth.getOrDefault(current, BigDecimal.ZERO);
+            BigDecimal revenue = revenueByMonth.getOrDefault(current, BigDecimal.ZERO);
             BigDecimal expenses = expensesByMonth.getOrDefault(current, BigDecimal.ZERO);
-            history.add(new MonthPoint(current.toString(), received, expenses, received.subtract(expenses)));
+            history.add(new MonthPoint(current.toString(), revenue, expenses, revenue.subtract(expenses)));
         }
         return history;
     }

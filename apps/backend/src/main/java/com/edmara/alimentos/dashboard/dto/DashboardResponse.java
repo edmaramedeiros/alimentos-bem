@@ -5,7 +5,7 @@ import java.util.List;
 
 public record DashboardResponse(
     String month,
-    BigDecimal received,
+    BigDecimal revenue,
     BigDecimal expenses,
     BigDecimal profit,
     List<ProductRanking> topProducts,
@@ -23,6 +23,6 @@ public record DashboardResponse(
     public record CustomerRanking(String name, BigDecimal revenue, int saleCount) {
     }
 
-    public record MonthPoint(String month, BigDecimal received, BigDecimal expenses, BigDecimal profit) {
+    public record MonthPoint(String month, BigDecimal revenue, BigDecimal expenses, BigDecimal profit) {
     }
 }

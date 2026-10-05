@@ -53,9 +53,9 @@ function DashboardContent() {
             <Card style={styles.kpiCard}>
               <Card.Content>
                 <Text variant="labelMedium" style={styles.muted}>
-                  Recebido
+                  Receita
                 </Text>
-                <Text variant="titleMedium">{formatCurrencyBRL(data.received)}</Text>
+                <Text variant="titleMedium">{formatCurrencyBRL(data.revenue)}</Text>
               </Card.Content>
             </Card>
             <Card style={styles.kpiCard}>
@@ -133,7 +133,7 @@ function DashboardContent() {
                 Lucro mensal (últimos 12 meses)
               </Text>
               <Text variant="bodySmall" style={styles.muted}>
-                Recebido − despesas, por mês
+                Receita − despesas, por mês
               </Text>
               <BarListChart
                 items={data.profitHistory.map((point) => ({
