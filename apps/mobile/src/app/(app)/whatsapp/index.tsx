@@ -2,10 +2,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Chip, Dialog, HelperText, List, Portal, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Chip, Dialog, HelperText, List, Portal, Text, TextInput } from 'react-native-paper';
 
 import { ApiError } from '@/api/client';
-import { disconnectSession, getSessionQr, getSessionStatus, listCampaigns } from '@/api/whatsapp';
+import {
+  disconnectSession,
+  getSessionQr,
+  getSessionStatus,
+  getWhatsappDailyLimit,
+  listCampaigns,
+  setWhatsappDailyLimit,
+} from '@/api/whatsapp';
 import { useAuthStore } from '@/store/auth-store';
 import { formatDateTimeBR } from '@/utils/format';
 
@@ -41,6 +48,41 @@ export default function WhatsappScreen() {
   });
 
   const campaignsQuery = useQuery({ queryKey: ['whatsapp', 'campaigns'], queryFn: listCampaigns });
+
+  const dailyLimitQuery = useQuery({
+    queryKey: ['whatsapp', 'daily-limit'],
+    queryFn: getWhatsappDailyLimit,
+    enabled: isAdmin,
+  });
+  const [dailyLimitDialogVisible, setDailyLimitDialogVisible] = useState(false);
+  const [dailyLimitInput, setDailyLimitInput] = useState('');
+  const [savingDailyLimit, setSavingDailyLimit] = useState(false);
+  const [dailyLimitError, setDailyLimitError] = useState<string | null>(null);
+
+  const openDailyLimitDialog = () => {
+    setDailyLimitInput(dailyLimitQuery.data?.dailyContactLimit != null ? String(dailyLimitQuery.data.dailyContactLimit) : '');
+    setDailyLimitError(null);
+    setDailyLimitDialogVisible(true);
+  };
+
+  const submitDailyLimit = async () => {
+    const parsed = Number(dailyLimitInput);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      setDailyLimitError('Informe um número inteiro de ao menos 1 contato');
+      return;
+    }
+    setSavingDailyLimit(true);
+    setDailyLimitError(null);
+    try {
+      await setWhatsappDailyLimit(parsed);
+      await queryClient.invalidateQueries({ queryKey: ['whatsapp', 'daily-limit'] });
+      setDailyLimitDialogVisible(false);
+    } catch (error) {
+      setDailyLimitError(error instanceof ApiError ? error.message : 'Não foi possível salvar o limite.');
+    } finally {
+      setSavingDailyLimit(false);
+    }
+  };
 
   const [disconnectDialogVisible, setDisconnectDialogVisible] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -142,6 +184,29 @@ export default function WhatsappScreen() {
         </Card.Content>
       </Card>
 
+      {isAdmin && (
+        <Card style={[styles.card, styles.cardSpacing]}>
+          <Card.Content>
+            <View style={styles.titleRow}>
+              <View>
+                <Text variant="titleMedium">Limite diário de contatos novos</Text>
+                <Text style={styles.muted}>
+                  {dailyLimitQuery.data?.dailyContactLimit != null
+                    ? `${dailyLimitQuery.data.dailyContactLimit} contatos novos por dia, por vendedora`
+                    : 'Sem limite configurado'}
+                </Text>
+              </View>
+              <Button mode="outlined" compact onPress={openDailyLimitDialog}>
+                Alterar
+              </Button>
+            </View>
+            <Text style={styles.mutedSmall}>
+              Um contato que já recebeu mensagem hoje pode receber outra sem contar nesse limite.
+            </Text>
+          </Card.Content>
+        </Card>
+      )}
+
       <Button mode="contained" onPress={() => router.push('/whatsapp/new')} style={styles.newButton} disabled={!connected}>
         Nova campanha
       </Button>
@@ -193,6 +258,33 @@ export default function WhatsappScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      <Portal>
+        <Dialog visible={dailyLimitDialogVisible} onDismiss={() => setDailyLimitDialogVisible(false)}>
+          <Dialog.Title>Limite diário de contatos novos</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Contatos novos por dia"
+              mode="outlined"
+              keyboardType="number-pad"
+              value={dailyLimitInput}
+              onChangeText={setDailyLimitInput}
+              error={!!dailyLimitError}
+            />
+            <HelperText type="error" visible={!!dailyLimitError}>
+              {dailyLimitError}
+            </HelperText>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDailyLimitDialogVisible(false)} disabled={savingDailyLimit}>
+              Cancelar
+            </Button>
+            <Button onPress={submitDailyLimit} loading={savingDailyLimit} disabled={savingDailyLimit}>
+              Salvar
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </ScrollView>
   );
 }
@@ -211,4 +303,5 @@ const styles = StyleSheet.create({
   newButton: { marginBottom: 4, alignSelf: 'flex-start' },
   sectionTitle: { marginTop: 24, marginBottom: 4 },
   muted: { opacity: 0.7 },
+  mutedSmall: { opacity: 0.6, marginTop: 8, fontSize: 12 },
 });

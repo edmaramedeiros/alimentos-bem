@@ -35,6 +35,27 @@ export function listCampaignRecipients(id: string): Promise<WhatsappBroadcastRec
   return apiRequest<WhatsappBroadcastRecipient[]>(`/api/whatsapp/campaigns/${id}/recipients`);
 }
 
+export function resendCampaignRecipient(campaignId: string, recipientId: string): Promise<WhatsappBroadcastRecipient> {
+  return apiRequest<WhatsappBroadcastRecipient>(
+    `/api/whatsapp/campaigns/${campaignId}/recipients/${recipientId}/resend`,
+    { method: 'POST' }
+  );
+}
+
+export type WhatsappDailyLimit = {
+  dailyContactLimit: number | null;
+  updatedAt: string | null;
+  updatedByName: string | null;
+};
+
+export function getWhatsappDailyLimit(): Promise<WhatsappDailyLimit> {
+  return apiRequest<WhatsappDailyLimit>('/api/whatsapp/daily-limit');
+}
+
+export function setWhatsappDailyLimit(dailyContactLimit: number): Promise<WhatsappDailyLimit> {
+  return apiRequest<WhatsappDailyLimit>('/api/whatsapp/daily-limit', { method: 'PATCH', body: { dailyContactLimit } });
+}
+
 export function getSessionStatus(): Promise<WhatsappSessionStatus> {
   return apiRequest<WhatsappSessionStatus>('/api/whatsapp/session/status');
 }

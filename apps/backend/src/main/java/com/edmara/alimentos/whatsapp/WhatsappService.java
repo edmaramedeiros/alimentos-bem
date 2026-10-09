@@ -10,6 +10,8 @@ import com.edmara.alimentos.user.Role;
 import com.edmara.alimentos.whatsapp.dto.BroadcastRecipientResponse;
 import com.edmara.alimentos.whatsapp.dto.BroadcastResponse;
 import com.edmara.alimentos.whatsapp.dto.CreateBroadcastRequest;
+import com.edmara.alimentos.whatsapp.dto.SetWhatsappDailyLimitRequest;
+import com.edmara.alimentos.whatsapp.dto.WhatsappDailyLimitResponse;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,7 @@ public class WhatsappService {
 
     private final WhatsappBroadcastRepository broadcastRepository;
     private final WhatsappBroadcastRecipientRepository recipientRepository;
+    private final WhatsappDailyLimitConfigRepository dailyLimitConfigRepository;
     private final CustomerRepository customerRepository;
     private final RestClient internalRestClient;
     private final String internalApiKey;
@@ -40,12 +43,14 @@ public class WhatsappService {
     public WhatsappService(
         WhatsappBroadcastRepository broadcastRepository,
         WhatsappBroadcastRecipientRepository recipientRepository,
+        WhatsappDailyLimitConfigRepository dailyLimitConfigRepository,
         CustomerRepository customerRepository,
         @Value("${app.whatsapp.service-url}") String whatsappServiceUrl,
         @Value("${app.whatsapp.api-key}") String internalApiKey
     ) {
         this.broadcastRepository = broadcastRepository;
         this.recipientRepository = recipientRepository;
+        this.dailyLimitConfigRepository = dailyLimitConfigRepository;
         this.customerRepository = customerRepository;
         this.internalApiKey = internalApiKey;
 
@@ -114,6 +119,48 @@ public class WhatsappService {
         return recipientRepository.findByBroadcast_IdOrderByCreatedAtAsc(id).stream()
             .map(BroadcastRecipientResponse::from)
             .toList();
+    }
+
+    @Transactional
+    public BroadcastRecipientResponse resendRecipient(UUID broadcastId, UUID recipientId, AppUser currentUser) {
+        WhatsappBroadcast broadcast = findBroadcast(broadcastId);
+        assertOwnership(broadcast, currentUser);
+
+        WhatsappBroadcastRecipient recipient = recipientRepository.findById(recipientId)
+            .filter(r -> r.getBroadcast().getId().equals(broadcastId))
+            .orElseThrow(() -> new ResourceNotFoundException("Destinatário não encontrado: " + recipientId));
+
+        recipient.setStatus(RecipientStatus.QUEUED);
+        recipient.setErrorMessage(null);
+        recipient.setSentAt(null);
+
+        // Campanha já finalizada (ou que falhou por completo) precisa voltar pra
+        // QUEUED, senão o worker nunca mais olha pra ela mesmo com um destinatário
+        // marcado pra reenvio.
+        if (broadcast.getStatus() == BroadcastStatus.DONE || broadcast.getStatus() == BroadcastStatus.FAILED) {
+            broadcast.setStatus(BroadcastStatus.QUEUED);
+        }
+
+        return BroadcastRecipientResponse.from(recipient);
+    }
+
+    @Transactional(readOnly = true)
+    public WhatsappDailyLimitResponse getDailyLimit() {
+        return dailyLimitConfigRepository.findFirstByOrderByCreatedAtAsc()
+            .map(WhatsappDailyLimitResponse::from)
+            .orElseGet(WhatsappDailyLimitResponse::empty);
+    }
+
+    @Transactional
+    public WhatsappDailyLimitResponse setDailyLimit(SetWhatsappDailyLimitRequest request, AppUser currentUser) {
+        WhatsappDailyLimitConfig config = dailyLimitConfigRepository.findFirstByOrderByCreatedAtAsc().orElse(null);
+        if (config == null) {
+            config = new WhatsappDailyLimitConfig(request.dailyContactLimit(), currentUser);
+        } else {
+            config.setDailyContactLimit(request.dailyContactLimit());
+            config.setUpdatedBy(currentUser);
+        }
+        return WhatsappDailyLimitResponse.from(dailyLimitConfigRepository.saveAndFlush(config));
     }
 
     @SuppressWarnings("unchecked")

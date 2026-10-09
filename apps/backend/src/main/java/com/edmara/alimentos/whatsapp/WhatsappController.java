@@ -5,14 +5,18 @@ import com.edmara.alimentos.user.AppUser;
 import com.edmara.alimentos.whatsapp.dto.BroadcastRecipientResponse;
 import com.edmara.alimentos.whatsapp.dto.BroadcastResponse;
 import com.edmara.alimentos.whatsapp.dto.CreateBroadcastRequest;
+import com.edmara.alimentos.whatsapp.dto.SetWhatsappDailyLimitRequest;
+import com.edmara.alimentos.whatsapp.dto.WhatsappDailyLimitResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -60,6 +64,29 @@ public class WhatsappController {
     @GetMapping("/campaigns/{id}/recipients")
     public List<BroadcastRecipientResponse> recipients(@PathVariable UUID id, @AuthenticationPrincipal AppUser currentUser) {
         return whatsappService.listRecipients(id, currentUser);
+    }
+
+    @PostMapping("/campaigns/{id}/recipients/{recipientId}/resend")
+    public BroadcastRecipientResponse resendRecipient(
+        @PathVariable UUID id,
+        @PathVariable UUID recipientId,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return whatsappService.resendRecipient(id, recipientId, currentUser);
+    }
+
+    @GetMapping("/daily-limit")
+    public WhatsappDailyLimitResponse getDailyLimit() {
+        return whatsappService.getDailyLimit();
+    }
+
+    @PatchMapping("/daily-limit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public WhatsappDailyLimitResponse setDailyLimit(
+        @Valid @RequestBody SetWhatsappDailyLimitRequest request,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return whatsappService.setDailyLimit(request, currentUser);
     }
 
     @GetMapping("/session/status")

@@ -21,6 +21,7 @@ type RecipientRow = {
   id: string;
   phone: string;
   customer_name: string;
+  customer_id: string;
 };
 
 // Igual a mala direta do Word: {{nome}} na mensagem vira o primeiro nome do
@@ -40,6 +41,24 @@ const SEND_TIMEZONE = "America/Cuiaba";
 const SEND_WINDOW_START_HOUR = 7;
 const SEND_WINDOW_END_HOUR = 17;
 
+// Meia-noite local (America/Cuiaba) de hoje, em UTC. O Brasil não observa mais
+// horário de verão desde 2019, então Cuiabá é sempre UTC-4 - meia-noite local
+// é sempre 04:00 UTC do mesmo dia civil.
+function startOfTodayLocal(date: Date = new Date()): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SEND_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = Number(parts.find((p) => p.type === "year")?.value);
+  const month = Number(parts.find((p) => p.type === "month")?.value);
+  const day = Number(parts.find((p) => p.type === "day")?.value);
+
+  return new Date(Date.UTC(year, month - 1, day, 4, 0, 0));
+}
+
 function isWithinSendingWindow(date: Date = new Date()): boolean {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: SEND_TIMEZONE,
@@ -55,6 +74,27 @@ function isWithinSendingWindow(date: Date = new Date()): boolean {
   const isWithinHours = hour >= SEND_WINDOW_START_HOUR && hour < SEND_WINDOW_END_HOUR;
 
   return isWeekday && isWithinHours;
+}
+
+// Limite diário de contatos NOVOS por vendedor (configurável pelo admin); null = sem limite.
+// Um contato que já recebeu mensagem hoje não conta de novo, então pode ser enviado mesmo
+// com o limite já batido - só bloqueia o primeiro envio do dia pra um contato ainda não tocado.
+async function getDailyContactLimit(): Promise<number | null> {
+  const { rows } = await pool.query<{ daily_contact_limit: number }>(
+    "SELECT daily_contact_limit FROM whatsapp_daily_limit_config ORDER BY created_at ASC LIMIT 1"
+  );
+  return rows.length > 0 ? rows[0].daily_contact_limit : null;
+}
+
+async function getCustomersAlreadySentToday(vendedorId: string): Promise<Set<string>> {
+  const { rows } = await pool.query<{ customer_id: string }>(
+    `SELECT DISTINCT wbr.customer_id
+     FROM whatsapp_broadcast_recipient wbr
+     JOIN whatsapp_broadcast wb ON wb.id = wbr.broadcast_id
+     WHERE wb.created_by = $1 AND wbr.status = 'SENT' AND wbr.sent_at >= $2`,
+    [vendedorId, startOfTodayLocal()]
+  );
+  return new Set(rows.map((r) => r.customer_id));
 }
 
 async function dispatchNextBroadcast(): Promise<void> {
@@ -78,9 +118,12 @@ async function dispatchNextBroadcast(): Promise<void> {
     await pool.query("UPDATE whatsapp_broadcast SET status = 'SENDING', updated_at = now() WHERE id = $1", [broadcast.id]);
 
     const { rows: recipients } = await pool.query<RecipientRow>(
-      `SELECT id, phone, customer_name FROM whatsapp_broadcast_recipient WHERE broadcast_id = $1 AND status = 'QUEUED' ORDER BY created_at ASC`,
+      `SELECT id, phone, customer_name, customer_id FROM whatsapp_broadcast_recipient WHERE broadcast_id = $1 AND status = 'QUEUED' ORDER BY created_at ASC`,
       [broadcast.id]
     );
+
+    const dailyLimit = await getDailyContactLimit();
+    const customersSentToday = await getCustomersAlreadySentToday(vendedorId);
 
     const attachment =
       broadcast.attachment_data && broadcast.attachment_file_name && broadcast.attachment_mime_type
@@ -98,6 +141,14 @@ async function dispatchNextBroadcast(): Promise<void> {
       if (!getStatus(vendedorId).connected) break;
       if (!isWithinSendingWindow()) break;
 
+      // Contato novo (ainda não tocado hoje por essa vendedora) além do limite diário
+      // configurado: pula sem gastar o "slot" de ninguém - fica QUEUED pro próximo dia.
+      // Contato que já recebeu mensagem hoje nunca é bloqueado por esse limite.
+      const isNewContactToday = !customersSentToday.has(recipient.customer_id);
+      if (isNewContactToday && dailyLimit !== null && customersSentToday.size >= dailyLimit) {
+        continue;
+      }
+
       try {
         const message = personalizeMessage(broadcast.message, recipient.customer_name);
         await sendCampaignMessage(vendedorId, recipient.phone, message, attachment);
@@ -105,6 +156,9 @@ async function dispatchNextBroadcast(): Promise<void> {
           "UPDATE whatsapp_broadcast_recipient SET status = 'SENT', sent_at = now(), updated_at = now() WHERE id = $1",
           [recipient.id]
         );
+        if (isNewContactToday) {
+          customersSentToday.add(recipient.customer_id);
+        }
       } catch (err) {
         logger.error(err, `Falha ao enviar para ${recipient.phone}`);
         await pool.query(
