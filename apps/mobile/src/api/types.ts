@@ -195,7 +195,7 @@ export type WhatsappBroadcastRecipient = {
   id: string;
   customerName: string;
   phone: string;
-  status: 'QUEUED' | 'SENT' | 'FAILED';
+  status: 'QUEUED' | 'SENT' | 'FAILED' | 'CANCELLED';
   errorMessage: string | null;
   sentAt: string | null;
 };

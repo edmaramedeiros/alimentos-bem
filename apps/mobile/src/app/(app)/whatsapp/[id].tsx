@@ -6,18 +6,20 @@ import { ActivityIndicator, Button, Card, Chip, Dialog, List, Portal, Text } fro
 
 import { ApiError } from '@/api/client';
 import type { WhatsappBroadcastRecipient } from '@/api/types';
-import { getCampaign, listCampaignRecipients, resendCampaignRecipient } from '@/api/whatsapp';
+import { getCampaign, listCampaignRecipients, removeCampaignRecipient, resendCampaignRecipient } from '@/api/whatsapp';
 import { formatDateTimeBR } from '@/utils/format';
 
 const STATUS_LABEL: Record<string, string> = {
   QUEUED: 'Na fila',
   SENT: 'Enviada',
   FAILED: 'Falhou',
+  CANCELLED: 'Removido',
 };
 
 function statusChipStyle(status: string) {
   if (status === 'SENT') return { backgroundColor: '#C6C664' };
   if (status === 'FAILED') return { backgroundColor: '#DC9251' };
+  if (status === 'CANCELLED') return { backgroundColor: '#E0E0E0' };
   return { backgroundColor: '#F4EFEB' };
 }
 
@@ -33,8 +35,8 @@ export default function CampaignDetailScreen() {
   const queryClient = useQueryClient();
 
   const [selectedRecipient, setSelectedRecipient] = useState<WhatsappBroadcastRecipient | null>(null);
-  const [resending, setResending] = useState(false);
-  const [resendError, setResendError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<'resend' | 'remove' | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const campaignQuery = useQuery({
     queryKey: ['whatsapp', 'campaign', id],
@@ -49,24 +51,42 @@ export default function CampaignDetailScreen() {
 
   const closeDialog = () => {
     setSelectedRecipient(null);
-    setResendError(null);
+    setActionError(null);
   };
+
+  const refreshCampaign = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['whatsapp', 'campaign', id] }),
+      queryClient.invalidateQueries({ queryKey: ['whatsapp', 'campaign', id, 'recipients'] }),
+    ]);
 
   const handleResend = async () => {
     if (!selectedRecipient) return;
-    setResending(true);
-    setResendError(null);
+    setActionLoading('resend');
+    setActionError(null);
     try {
       await resendCampaignRecipient(id, selectedRecipient.id);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'campaign', id] }),
-        queryClient.invalidateQueries({ queryKey: ['whatsapp', 'campaign', id, 'recipients'] }),
-      ]);
+      await refreshCampaign();
       closeDialog();
     } catch (error) {
-      setResendError(error instanceof ApiError ? error.message : 'Não foi possível marcar para reenviar.');
+      setActionError(error instanceof ApiError ? error.message : 'Não foi possível marcar para reenviar.');
     } finally {
-      setResending(false);
+      setActionLoading(null);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!selectedRecipient) return;
+    setActionLoading('remove');
+    setActionError(null);
+    try {
+      await removeCampaignRecipient(id, selectedRecipient.id);
+      await refreshCampaign();
+      closeDialog();
+    } catch (error) {
+      setActionError(error instanceof ApiError ? error.message : 'Não foi possível remover da fila.');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -86,6 +106,9 @@ export default function CampaignDetailScreen() {
       </View>
     );
   }
+
+  const canResend = selectedRecipient?.status === 'SENT' || selectedRecipient?.status === 'FAILED';
+  const canRemove = selectedRecipient?.status === 'QUEUED' || selectedRecipient?.status === 'FAILED';
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -109,7 +132,7 @@ export default function CampaignDetailScreen() {
         Destinatários
       </Text>
       <Text variant="bodySmall" style={styles.muted}>
-        Toque num destinatário já enviado ou que falhou para marcar o envio de novo.
+        Toque num destinatário para reenviar a mensagem ou removê-lo da fila.
       </Text>
       {recipientsQuery.isLoading ? (
         <ActivityIndicator />
@@ -119,7 +142,7 @@ export default function CampaignDetailScreen() {
             key={recipient.id}
             title={recipient.customerName}
             description={recipient.errorMessage ?? recipient.phone}
-            onPress={recipient.status === 'QUEUED' ? undefined : () => setSelectedRecipient(recipient)}
+            onPress={recipient.status === 'CANCELLED' ? undefined : () => setSelectedRecipient(recipient)}
             right={() => (
               <Chip compact style={statusChipStyle(recipient.status)}>
                 {STATUS_LABEL[recipient.status] ?? recipient.status}
@@ -131,21 +154,30 @@ export default function CampaignDetailScreen() {
 
       <Portal>
         <Dialog visible={!!selectedRecipient} onDismiss={closeDialog}>
-          <Dialog.Title>Reenviar mensagem?</Dialog.Title>
+          <Dialog.Title>{selectedRecipient?.customerName}</Dialog.Title>
           <Dialog.Content>
-            <Text>
-              A mensagem para {selectedRecipient?.customerName} será marcada para ser enviada de novo na próxima janela
-              de envio.
-            </Text>
-            {resendError ? <Text style={styles.errorText}>{resendError}</Text> : null}
+            <Text>O que você quer fazer com este destinatário?</Text>
+            {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={closeDialog} disabled={resending}>
-              Cancelar
+            <Button onPress={closeDialog} disabled={!!actionLoading}>
+              Fechar
             </Button>
-            <Button onPress={handleResend} loading={resending} disabled={resending}>
-              Marcar para reenviar
-            </Button>
+            {canRemove && (
+              <Button
+                onPress={handleRemove}
+                loading={actionLoading === 'remove'}
+                disabled={!!actionLoading}
+                textColor="#A74C39"
+              >
+                Remover da fila
+              </Button>
+            )}
+            {canResend && (
+              <Button onPress={handleResend} loading={actionLoading === 'resend'} disabled={!!actionLoading}>
+                Reenviar
+              </Button>
+            )}
           </Dialog.Actions>
         </Dialog>
       </Portal>

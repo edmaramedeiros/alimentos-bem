@@ -149,6 +149,15 @@ async function dispatchNextBroadcast(): Promise<void> {
         continue;
       }
 
+      // Reconfere o status bem antes de mandar a mensagem: o destinatário pode ter
+      // sido removido da fila (ou marcado pra reenvio de novo) depois que esse lote
+      // foi carregado do banco, no início do processamento da campanha.
+      const { rows: currentStatusRows } = await pool.query<{ status: string }>(
+        "SELECT status FROM whatsapp_broadcast_recipient WHERE id = $1",
+        [recipient.id]
+      );
+      if (currentStatusRows[0]?.status !== "QUEUED") continue;
+
       try {
         const message = personalizeMessage(broadcast.message, recipient.customer_name);
         await sendCampaignMessage(vendedorId, recipient.phone, message, attachment);

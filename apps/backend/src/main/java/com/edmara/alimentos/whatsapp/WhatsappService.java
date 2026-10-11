@@ -125,10 +125,7 @@ public class WhatsappService {
     public BroadcastRecipientResponse resendRecipient(UUID broadcastId, UUID recipientId, AppUser currentUser) {
         WhatsappBroadcast broadcast = findBroadcast(broadcastId);
         assertOwnership(broadcast, currentUser);
-
-        WhatsappBroadcastRecipient recipient = recipientRepository.findById(recipientId)
-            .filter(r -> r.getBroadcast().getId().equals(broadcastId))
-            .orElseThrow(() -> new ResourceNotFoundException("Destinatário não encontrado: " + recipientId));
+        WhatsappBroadcastRecipient recipient = findRecipient(broadcastId, recipientId);
 
         recipient.setStatus(RecipientStatus.QUEUED);
         recipient.setErrorMessage(null);
@@ -142,6 +139,28 @@ public class WhatsappService {
         }
 
         return BroadcastRecipientResponse.from(recipient);
+    }
+
+    @Transactional
+    public BroadcastRecipientResponse removeRecipient(UUID broadcastId, UUID recipientId, AppUser currentUser) {
+        WhatsappBroadcast broadcast = findBroadcast(broadcastId);
+        assertOwnership(broadcast, currentUser);
+        WhatsappBroadcastRecipient recipient = findRecipient(broadcastId, recipientId);
+
+        if (recipient.getStatus() == RecipientStatus.SENT) {
+            throw new IllegalArgumentException("Não é possível remover um destinatário que já recebeu a mensagem");
+        }
+
+        recipient.setStatus(RecipientStatus.CANCELLED);
+        recipient.setErrorMessage(null);
+
+        return BroadcastRecipientResponse.from(recipient);
+    }
+
+    private WhatsappBroadcastRecipient findRecipient(UUID broadcastId, UUID recipientId) {
+        return recipientRepository.findById(recipientId)
+            .filter(r -> r.getBroadcast().getId().equals(broadcastId))
+            .orElseThrow(() -> new ResourceNotFoundException("Destinatário não encontrado: " + recipientId));
     }
 
     @Transactional(readOnly = true)

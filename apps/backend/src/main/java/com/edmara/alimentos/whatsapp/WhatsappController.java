@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -73,6 +74,15 @@ public class WhatsappController {
         @AuthenticationPrincipal AppUser currentUser
     ) {
         return whatsappService.resendRecipient(id, recipientId, currentUser);
+    }
+
+    @DeleteMapping("/campaigns/{id}/recipients/{recipientId}")
+    public BroadcastRecipientResponse removeRecipient(
+        @PathVariable UUID id,
+        @PathVariable UUID recipientId,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return whatsappService.removeRecipient(id, recipientId, currentUser);
     }
 
     @GetMapping("/daily-limit")

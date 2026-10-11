@@ -42,6 +42,13 @@ export function resendCampaignRecipient(campaignId: string, recipientId: string)
   );
 }
 
+export function removeCampaignRecipient(campaignId: string, recipientId: string): Promise<WhatsappBroadcastRecipient> {
+  return apiRequest<WhatsappBroadcastRecipient>(
+    `/api/whatsapp/campaigns/${campaignId}/recipients/${recipientId}`,
+    { method: 'DELETE' }
+  );
+}
+
 export type WhatsappDailyLimit = {
   dailyContactLimit: number | null;
   updatedAt: string | null;
