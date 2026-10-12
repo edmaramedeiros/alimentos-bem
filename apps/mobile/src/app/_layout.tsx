@@ -3,21 +3,23 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform, useColorScheme } from 'react-native';
+import { Platform } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 import { useAuthStore } from '@/store/auth-store';
-import { paperDarkTheme, paperLightTheme } from '@/theme/paper-theme';
+import { paperLightTheme } from '@/theme/paper-theme';
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const theme = colorScheme === 'dark' ? paperDarkTheme : paperLightTheme;
+  // As telas usam as cores da marca (creme/oliva) fixas no código, não o tema do
+  // Paper — então seguir o modo escuro do aparelho deixava a interface misturada
+  // (alguns componentes escuros, outros claros). Mantemos sempre o tema claro.
+  const theme = paperLightTheme;
   const pathname = usePathname();
 
   useEffect(() => {
