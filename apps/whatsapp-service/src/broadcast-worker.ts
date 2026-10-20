@@ -141,6 +141,15 @@ async function dispatchNextBroadcast(): Promise<void> {
       if (!getStatus(vendedorId).connected) break;
       if (!isWithinSendingWindow()) break;
 
+      // Campanha pode ter sido pausada pelo usuário desde que esse lote foi
+      // carregado - reconfere a cada destinatário pra parar assim que perceber,
+      // em vez de só no fim do lote inteiro.
+      const { rows: broadcastStatusRows } = await pool.query<{ status: string }>(
+        "SELECT status FROM whatsapp_broadcast WHERE id = $1",
+        [broadcast.id]
+      );
+      if (broadcastStatusRows[0]?.status !== "SENDING") break;
+
       // Contato novo (ainda não tocado hoje por essa vendedora) além do limite diário
       // configurado: pula sem gastar o "slot" de ninguém - fica QUEUED pro próximo dia.
       // Contato que já recebeu mensagem hoje nunca é bloqueado por esse limite.
@@ -187,13 +196,18 @@ async function dispatchNextBroadcast(): Promise<void> {
       [broadcast.id]
     );
     const finalStatus = remaining[0].count > 0 ? "QUEUED" : "DONE";
-    await pool.query("UPDATE whatsapp_broadcast SET status = $2, updated_at = now() WHERE id = $1", [
+    // Só atualiza se ainda estiver SENDING: se foi pausada durante o lote, o status
+    // já é PAUSED no banco e não deve ser sobrescrito de volta pra QUEUED/DONE aqui.
+    await pool.query("UPDATE whatsapp_broadcast SET status = $2, updated_at = now() WHERE id = $1 AND status = 'SENDING'", [
       broadcast.id,
       finalStatus,
     ]);
   } catch (err) {
     logger.error(err, `Falha ao processar campanha ${broadcast.id}`);
-    await pool.query("UPDATE whatsapp_broadcast SET status = 'FAILED', updated_at = now() WHERE id = $1", [broadcast.id]);
+    await pool.query(
+      "UPDATE whatsapp_broadcast SET status = 'FAILED', updated_at = now() WHERE id = $1 AND status = 'SENDING'",
+      [broadcast.id]
+    );
   } finally {
     dispatching = false;
   }

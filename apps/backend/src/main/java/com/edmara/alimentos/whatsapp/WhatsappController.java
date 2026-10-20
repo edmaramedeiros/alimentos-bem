@@ -85,6 +85,16 @@ public class WhatsappController {
         return whatsappService.removeRecipient(id, recipientId, currentUser);
     }
 
+    @PostMapping("/campaigns/{id}/pause")
+    public BroadcastResponse pauseCampaign(@PathVariable UUID id, @AuthenticationPrincipal AppUser currentUser) {
+        return whatsappService.pauseCampaign(id, currentUser);
+    }
+
+    @PostMapping("/campaigns/{id}/resume")
+    public BroadcastResponse resumeCampaign(@PathVariable UUID id, @AuthenticationPrincipal AppUser currentUser) {
+        return whatsappService.resumeCampaign(id, currentUser);
+    }
+
     @GetMapping("/daily-limit")
     public WhatsappDailyLimitResponse getDailyLimit() {
         return whatsappService.getDailyLimit();

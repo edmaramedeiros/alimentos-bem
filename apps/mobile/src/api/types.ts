@@ -183,7 +183,7 @@ export type WhatsappBroadcast = {
   cityFilter: string | null;
   nameFilter: string | null;
   delaySeconds: number;
-  status: 'QUEUED' | 'SENDING' | 'DONE' | 'FAILED';
+  status: 'QUEUED' | 'SENDING' | 'PAUSED' | 'DONE' | 'FAILED';
   recipientCount: number;
   sentCount: number;
   failedCount: number;

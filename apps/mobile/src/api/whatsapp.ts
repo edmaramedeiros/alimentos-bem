@@ -49,6 +49,14 @@ export function removeCampaignRecipient(campaignId: string, recipientId: string)
   );
 }
 
+export function pauseCampaign(id: string): Promise<WhatsappBroadcast> {
+  return apiRequest<WhatsappBroadcast>(`/api/whatsapp/campaigns/${id}/pause`, { method: 'POST' });
+}
+
+export function resumeCampaign(id: string): Promise<WhatsappBroadcast> {
+  return apiRequest<WhatsappBroadcast>(`/api/whatsapp/campaigns/${id}/resume`, { method: 'POST' });
+}
+
 export type WhatsappDailyLimit = {
   dailyContactLimit: number | null;
   updatedAt: string | null;

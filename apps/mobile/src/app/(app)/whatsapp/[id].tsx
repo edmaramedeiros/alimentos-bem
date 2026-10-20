@@ -6,7 +6,14 @@ import { ActivityIndicator, Button, Card, Chip, Dialog, List, Portal, Text } fro
 
 import { ApiError } from '@/api/client';
 import type { WhatsappBroadcastRecipient } from '@/api/types';
-import { getCampaign, listCampaignRecipients, removeCampaignRecipient, resendCampaignRecipient } from '@/api/whatsapp';
+import {
+  getCampaign,
+  listCampaignRecipients,
+  pauseCampaign,
+  removeCampaignRecipient,
+  resendCampaignRecipient,
+  resumeCampaign,
+} from '@/api/whatsapp';
 import { formatDateTimeBR } from '@/utils/format';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -26,6 +33,7 @@ function statusChipStyle(status: string) {
 const CAMPAIGN_STATUS_LABEL: Record<string, string> = {
   QUEUED: 'Na fila',
   SENDING: 'Enviando',
+  PAUSED: 'Pausada',
   DONE: 'Concluída',
   FAILED: 'Falhou',
 };
@@ -37,6 +45,9 @@ export default function CampaignDetailScreen() {
   const [selectedRecipient, setSelectedRecipient] = useState<WhatsappBroadcastRecipient | null>(null);
   const [actionLoading, setActionLoading] = useState<'resend' | 'remove' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [campaignActionLoading, setCampaignActionLoading] = useState(false);
+  const [campaignActionError, setCampaignActionError] = useState<string | null>(null);
 
   const campaignQuery = useQuery({
     queryKey: ['whatsapp', 'campaign', id],
@@ -90,6 +101,32 @@ export default function CampaignDetailScreen() {
     }
   };
 
+  const handlePause = async () => {
+    setCampaignActionLoading(true);
+    setCampaignActionError(null);
+    try {
+      await pauseCampaign(id);
+      await refreshCampaign();
+    } catch (error) {
+      setCampaignActionError(error instanceof ApiError ? error.message : 'Não foi possível pausar a campanha.');
+    } finally {
+      setCampaignActionLoading(false);
+    }
+  };
+
+  const handleResume = async () => {
+    setCampaignActionLoading(true);
+    setCampaignActionError(null);
+    try {
+      await resumeCampaign(id);
+      await refreshCampaign();
+    } catch (error) {
+      setCampaignActionError(error instanceof ApiError ? error.message : 'Não foi possível retomar a campanha.');
+    } finally {
+      setCampaignActionLoading(false);
+    }
+  };
+
   if (campaignQuery.isLoading) {
     return (
       <View style={styles.center}>
@@ -125,6 +162,30 @@ export default function CampaignDetailScreen() {
               {campaign.sentCount} enviadas · {campaign.failedCount} falharam · {campaign.recipientCount} no total
             </Text>
           </View>
+
+          {(campaign.status === 'QUEUED' || campaign.status === 'SENDING') && (
+            <Button
+              mode="outlined"
+              onPress={handlePause}
+              loading={campaignActionLoading}
+              disabled={campaignActionLoading}
+              style={styles.campaignActionButton}
+            >
+              Pausar campanha
+            </Button>
+          )}
+          {campaign.status === 'PAUSED' && (
+            <Button
+              mode="contained"
+              onPress={handleResume}
+              loading={campaignActionLoading}
+              disabled={campaignActionLoading}
+              style={styles.campaignActionButton}
+            >
+              Retomar envio
+            </Button>
+          )}
+          {campaignActionError ? <Text style={styles.errorText}>{campaignActionError}</Text> : null}
         </Card.Content>
       </Card>
 
@@ -192,6 +253,7 @@ const styles = StyleSheet.create({
   muted: { opacity: 0.7, marginTop: 4 },
   statsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   stats: { opacity: 0.8 },
+  campaignActionButton: { marginTop: 12, alignSelf: 'flex-start' },
   sectionTitle: { marginBottom: 4 },
   errorText: { color: '#A74C39', marginTop: 8 },
 });

@@ -163,6 +163,34 @@ public class WhatsappService {
             .orElseThrow(() -> new ResourceNotFoundException("Destinatário não encontrado: " + recipientId));
     }
 
+    @Transactional
+    public BroadcastResponse pauseCampaign(UUID broadcastId, AppUser currentUser) {
+        WhatsappBroadcast broadcast = findBroadcast(broadcastId);
+        assertOwnership(broadcast, currentUser);
+
+        if (broadcast.getStatus() == BroadcastStatus.DONE || broadcast.getStatus() == BroadcastStatus.FAILED) {
+            throw new IllegalArgumentException("Não é possível pausar uma campanha já concluída");
+        }
+
+        // Se estiver SENDING, o worker reconfere esse status antes de cada envio e
+        // para assim que perceber a mudança (não espera terminar o lote inteiro).
+        broadcast.setStatus(BroadcastStatus.PAUSED);
+        return BroadcastResponse.from(broadcast);
+    }
+
+    @Transactional
+    public BroadcastResponse resumeCampaign(UUID broadcastId, AppUser currentUser) {
+        WhatsappBroadcast broadcast = findBroadcast(broadcastId);
+        assertOwnership(broadcast, currentUser);
+
+        if (broadcast.getStatus() != BroadcastStatus.PAUSED) {
+            throw new IllegalArgumentException("Esta campanha não está pausada");
+        }
+
+        broadcast.setStatus(BroadcastStatus.QUEUED);
+        return BroadcastResponse.from(broadcast);
+    }
+
     @Transactional(readOnly = true)
     public WhatsappDailyLimitResponse getDailyLimit() {
         return dailyLimitConfigRepository.findFirstByOrderByCreatedAtAsc()

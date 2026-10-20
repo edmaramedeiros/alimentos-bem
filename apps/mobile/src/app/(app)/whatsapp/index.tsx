@@ -19,6 +19,7 @@ import { formatDateTimeBR } from '@/utils/format';
 const STATUS_LABEL: Record<string, string> = {
   QUEUED: 'Na fila',
   SENDING: 'Enviando',
+  PAUSED: 'Pausada',
   DONE: 'Concluída',
   FAILED: 'Falhou',
 };
@@ -27,6 +28,7 @@ function statusChipStyle(status: string) {
   if (status === 'DONE') return { backgroundColor: '#C6C664' };
   if (status === 'FAILED') return { backgroundColor: '#DC9251' };
   if (status === 'SENDING') return { backgroundColor: '#ECCFB1' };
+  if (status === 'PAUSED') return { backgroundColor: '#E0E0E0' };
   return { backgroundColor: '#F4EFEB' };
 }
 
