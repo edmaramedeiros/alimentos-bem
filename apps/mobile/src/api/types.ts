@@ -210,10 +210,11 @@ export type DashboardIndicators = {
   month: string;
   revenue: number;
   toReceive: number;
-  expenses: number;
-  profit: number;
+  // null para quem não é admin: despesas/lucro são do negócio todo, não da vendedora.
+  expenses: number | null;
+  profit: number | null;
   topProducts: { name: string; quantity: number; revenue: number }[];
   categories: { name: string; revenue: number; percentage: number }[];
   topCustomers: { name: string; revenue: number; saleCount: number }[];
-  profitHistory: { month: string; revenue: number; expenses: number; profit: number }[];
+  profitHistory: { month: string; revenue: number; expenses: number | null; profit: number | null }[];
 };

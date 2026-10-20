@@ -1,9 +1,10 @@
 package com.edmara.alimentos.dashboard;
 
 import com.edmara.alimentos.dashboard.dto.DashboardResponse;
+import com.edmara.alimentos.user.AppUser;
 import java.time.YearMonth;
 import java.time.ZoneId;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/dashboard")
-@PreAuthorize("hasRole('ADMIN')")
 public class DashboardController {
 
     private static final ZoneId ZONE = ZoneId.of("America/Cuiaba");
@@ -23,8 +23,11 @@ public class DashboardController {
     }
 
     @GetMapping("/indicators")
-    public DashboardResponse indicators(@RequestParam(required = false) String month) {
-        return dashboardService.indicators(parseMonth(month));
+    public DashboardResponse indicators(
+        @RequestParam(required = false) String month,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return dashboardService.indicators(parseMonth(month), currentUser);
     }
 
     private YearMonth parseMonth(String month) {

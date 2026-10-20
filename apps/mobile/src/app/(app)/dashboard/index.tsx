@@ -5,7 +5,6 @@ import { ActivityIndicator, Card, IconButton, Text } from 'react-native-paper';
 
 import { getDashboardIndicators } from '@/api/dashboard';
 import { BarListChart } from '@/components/bar-list-chart';
-import { RequireRole } from '@/components/require-role';
 import { formatCurrencyBRL, formatMonthLabel, formatPercent } from '@/utils/format';
 
 function currentYearMonth(): string {
@@ -19,7 +18,7 @@ function shiftMonth(yearMonth: string, delta: number): string {
   return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function DashboardContent() {
+export default function DashboardScreen() {
   const [month, setMonth] = useState(currentYearMonth);
   const isCurrentMonth = month === currentYearMonth();
 
@@ -66,24 +65,28 @@ function DashboardContent() {
                 <Text variant="titleMedium">{formatCurrencyBRL(data.toReceive)}</Text>
               </Card.Content>
             </Card>
-            <Card style={styles.kpiCard}>
-              <Card.Content>
-                <Text variant="labelMedium" style={styles.muted}>
-                  Despesas
-                </Text>
-                <Text variant="titleMedium">{formatCurrencyBRL(data.expenses)}</Text>
-              </Card.Content>
-            </Card>
-            <Card style={styles.kpiCard}>
-              <Card.Content>
-                <Text variant="labelMedium" style={styles.muted}>
-                  Lucro
-                </Text>
-                <Text variant="titleMedium" style={data.profit < 0 ? styles.negative : undefined}>
-                  {formatCurrencyBRL(data.profit)}
-                </Text>
-              </Card.Content>
-            </Card>
+            {data.expenses != null && (
+              <Card style={styles.kpiCard}>
+                <Card.Content>
+                  <Text variant="labelMedium" style={styles.muted}>
+                    Despesas
+                  </Text>
+                  <Text variant="titleMedium">{formatCurrencyBRL(data.expenses)}</Text>
+                </Card.Content>
+              </Card>
+            )}
+            {data.profit != null && (
+              <Card style={styles.kpiCard}>
+                <Card.Content>
+                  <Text variant="labelMedium" style={styles.muted}>
+                    Lucro
+                  </Text>
+                  <Text variant="titleMedium" style={data.profit < 0 ? styles.negative : undefined}>
+                    {formatCurrencyBRL(data.profit)}
+                  </Text>
+                </Card.Content>
+              </Card>
+            )}
           </View>
 
           <Card style={styles.card}>
@@ -135,36 +138,30 @@ function DashboardContent() {
             </Card.Content>
           </Card>
 
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.cardTitle}>
-                Lucro mensal (últimos 12 meses)
-              </Text>
-              <Text variant="bodySmall" style={styles.muted}>
-                Receita − despesas, por mês
-              </Text>
-              <BarListChart
-                items={data.profitHistory.map((point) => ({
-                  key: point.month,
-                  label: formatMonthLabel(point.month),
-                  value: point.profit,
-                  highlighted: point.month === month,
-                }))}
-                emptyMessage="Sem dados."
-              />
-            </Card.Content>
-          </Card>
+          {data.profitHistory.some((point) => point.profit != null) && (
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text variant="titleMedium" style={styles.cardTitle}>
+                  Lucro mensal (últimos 12 meses)
+                </Text>
+                <Text variant="bodySmall" style={styles.muted}>
+                  Receita − despesas, por mês
+                </Text>
+                <BarListChart
+                  items={data.profitHistory.map((point) => ({
+                    key: point.month,
+                    label: formatMonthLabel(point.month),
+                    value: point.profit ?? 0,
+                    highlighted: point.month === month,
+                  }))}
+                  emptyMessage="Sem dados."
+                />
+              </Card.Content>
+            </Card>
+          )}
         </>
       )}
     </ScrollView>
-  );
-}
-
-export default function DashboardScreen() {
-  return (
-    <RequireRole role="ADMIN">
-      <DashboardContent />
-    </RequireRole>
   );
 }
 

@@ -11,6 +11,8 @@ import com.edmara.alimentos.sale.Sale;
 import com.edmara.alimentos.sale.SaleItem;
 import com.edmara.alimentos.sale.SaleRepository;
 import com.edmara.alimentos.sale.SaleStatus;
+import com.edmara.alimentos.user.AppUser;
+import com.edmara.alimentos.user.Role;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -42,13 +44,21 @@ public class DashboardService {
     }
 
     @Transactional(readOnly = true)
-    public DashboardResponse indicators(YearMonth month) {
+    public DashboardResponse indicators(YearMonth month, AppUser currentUser) {
+        // Vendedora só vê a própria performance de vendas, nunca a de outra vendedora
+        // nem despesas/lucro (são dados financeiros do negócio todo, não dela) - só
+        // admin enxerga o negócio inteiro, igual já acontece em vendas e clientes.
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+        UUID vendedorScopeId = isAdmin ? null : currentUser.getId();
+
         YearMonth startMonth = month.minusMonths(HISTORY_MONTHS - 1);
         Instant windowStart = startMonth.atDay(1).atStartOfDay(ZONE).toInstant();
         Instant windowEnd = month.plusMonths(1).atDay(1).atStartOfDay(ZONE).toInstant();
         List<Sale> sales = saleRepository.findBySaleDateGreaterThanEqualAndSaleDateLessThanAndStatusNot(
-            windowStart, windowEnd, SaleStatus.CANCELLED
-        );
+                windowStart, windowEnd, SaleStatus.CANCELLED
+            ).stream()
+            .filter(sale -> vendedorScopeId == null || sale.getVendedor().getId().equals(vendedorScopeId))
+            .toList();
 
         Map<YearMonth, BigDecimal> revenueByMonth = new HashMap<>();
         Map<YearMonth, List<Sale>> salesByMonth = new HashMap<>();
@@ -58,7 +68,7 @@ public class DashboardService {
             salesByMonth.computeIfAbsent(saleMonth, k -> new ArrayList<>()).add(sale);
         }
 
-        List<MonthPoint> history = profitHistory(startMonth, revenueByMonth);
+        List<MonthPoint> history = profitHistory(startMonth, revenueByMonth, isAdmin);
         MonthPoint selected = history.get(history.size() - 1);
 
         List<Sale> selectedSales = salesByMonth.getOrDefault(month, List.of());
@@ -129,22 +139,25 @@ public class DashboardService {
         );
     }
 
-    private List<MonthPoint> profitHistory(YearMonth startMonth, Map<YearMonth, BigDecimal> revenueByMonth) {
+    private List<MonthPoint> profitHistory(YearMonth startMonth, Map<YearMonth, BigDecimal> revenueByMonth, boolean includeExpenses) {
         YearMonth endMonth = startMonth.plusMonths(HISTORY_MONTHS - 1);
-        LocalDate fromDate = startMonth.atDay(1);
-        LocalDate toDate = endMonth.plusMonths(1).atDay(1);
 
         Map<YearMonth, BigDecimal> expensesByMonth = new HashMap<>();
-        for (Expense expense : expenseRepository.findByExpenseDateGreaterThanEqualAndExpenseDateLessThan(fromDate, toDate)) {
-            expensesByMonth.merge(YearMonth.from(expense.getExpenseDate()), expense.getAmount(), BigDecimal::add);
+        if (includeExpenses) {
+            LocalDate fromDate = startMonth.atDay(1);
+            LocalDate toDate = endMonth.plusMonths(1).atDay(1);
+            for (Expense expense : expenseRepository.findByExpenseDateGreaterThanEqualAndExpenseDateLessThan(fromDate, toDate)) {
+                expensesByMonth.merge(YearMonth.from(expense.getExpenseDate()), expense.getAmount(), BigDecimal::add);
+            }
         }
 
         List<MonthPoint> history = new ArrayList<>();
         for (int i = 0; i < HISTORY_MONTHS; i++) {
             YearMonth current = startMonth.plusMonths(i);
             BigDecimal revenue = revenueByMonth.getOrDefault(current, BigDecimal.ZERO);
-            BigDecimal expenses = expensesByMonth.getOrDefault(current, BigDecimal.ZERO);
-            history.add(new MonthPoint(current.toString(), revenue, expenses, revenue.subtract(expenses)));
+            BigDecimal expenses = includeExpenses ? expensesByMonth.getOrDefault(current, BigDecimal.ZERO) : null;
+            BigDecimal profit = includeExpenses ? revenue.subtract(expenses) : null;
+            history.add(new MonthPoint(current.toString(), revenue, expenses, profit));
         }
         return history;
     }
