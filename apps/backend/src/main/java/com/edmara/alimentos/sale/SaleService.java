@@ -19,6 +19,7 @@ import com.edmara.alimentos.product.ProductRepository;
 import com.edmara.alimentos.sale.dto.CreateSaleRequest;
 import com.edmara.alimentos.sale.dto.DailySalesPointResponse;
 import com.edmara.alimentos.sale.dto.MonthlySalesPointResponse;
+import com.edmara.alimentos.sale.dto.PickingListResponse;
 import com.edmara.alimentos.sale.dto.SaleItemRequest;
 import com.edmara.alimentos.sale.dto.SaleResponse;
 import com.edmara.alimentos.sale.dto.SaleSummaryResponse;
@@ -31,7 +32,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -339,6 +343,50 @@ public class SaleService {
         return totalsByDay.entrySet().stream()
             .map(entry -> new DailySalesPointResponse(entry.getKey(), entry.getValue()))
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PickingListResponse pickingList(UUID vendedorId, AppUser currentUser) {
+        UUID effectiveVendedorId = resolveVendedorId(vendedorId, currentUser);
+        List<SaleItem> items = effectiveVendedorId != null
+            ? saleRepository.findItemsBySaleStatusAndVendedor(SaleStatus.AWAITING_DELIVERY, effectiveVendedorId)
+            : saleRepository.findItemsBySaleStatus(SaleStatus.AWAITING_DELIVERY);
+
+        // LinkedHashMap preserva a ordem dos pedidos (mais antigo primeiro) dentro de cada produto.
+        Map<UUID, List<SaleItem>> itemsByProduct = new LinkedHashMap<>();
+        for (SaleItem item : items) {
+            itemsByProduct.computeIfAbsent(item.getProduct().getId(), key -> new ArrayList<>()).add(item);
+        }
+
+        List<PickingListResponse.Product> products = itemsByProduct.values().stream()
+            .map(productItems -> {
+                Product product = productItems.get(0).getProduct();
+                BigDecimal total = productItems.stream()
+                    .map(SaleItem::getQuantity)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                List<PickingListResponse.Order> orders = productItems.stream()
+                    .map(item -> new PickingListResponse.Order(
+                        item.getSale().getId(),
+                        item.getSale().getCustomer() != null ? item.getSale().getCustomer().getName() : "Consumidor",
+                        item.getSale().getVendedor().getName(),
+                        item.getSale().getSaleDate(),
+                        item.getQuantity()
+                    ))
+                    .toList();
+                return new PickingListResponse.Product(
+                    product.getId(),
+                    product.getName(),
+                    product.getCategory(),
+                    product.getUnit(),
+                    total,
+                    orders
+                );
+            })
+            .sorted(Comparator.comparing(PickingListResponse.Product::productName, String.CASE_INSENSITIVE_ORDER))
+            .toList();
+
+        int orderCount = (int) items.stream().map(item -> item.getSale().getId()).distinct().count();
+        return new PickingListResponse(orderCount, products);
     }
 
     private List<Sale> fetchNonCancelledSales(UUID vendedorId) {

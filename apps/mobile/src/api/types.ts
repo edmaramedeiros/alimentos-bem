@@ -218,3 +218,25 @@ export type DashboardIndicators = {
   topCustomers: { name: string; revenue: number; saleCount: number }[];
   profitHistory: { month: string; revenue: number; expenses: number | null; profit: number | null }[];
 };
+
+export type PickingListOrder = {
+  saleId: string;
+  customerName: string;
+  vendedorName: string;
+  saleDate: string;
+  quantity: number;
+};
+
+export type PickingListProduct = {
+  productId: string;
+  productName: string;
+  category: string | null;
+  unit: string;
+  totalQuantity: number;
+  orders: PickingListOrder[];
+};
+
+export type PickingList = {
+  orderCount: number;
+  products: PickingListProduct[];
+};

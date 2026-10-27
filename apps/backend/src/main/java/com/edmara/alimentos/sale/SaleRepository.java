@@ -29,6 +29,20 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 
     List<Sale> findBySaleDateGreaterThanEqualAndSaleDateLessThanAndStatusNot(Instant from, Instant to, SaleStatus status);
 
+    // Itens já com venda, produto, cliente e vendedor carregados, pra montar a lista de
+    // separação sem uma query lazy por item.
+    @Query(
+        "SELECT i FROM SaleItem i JOIN FETCH i.sale s JOIN FETCH i.product JOIN FETCH s.vendedor LEFT JOIN FETCH s.customer "
+            + "WHERE s.status = :status ORDER BY s.saleDate ASC"
+    )
+    List<SaleItem> findItemsBySaleStatus(@Param("status") SaleStatus status);
+
+    @Query(
+        "SELECT i FROM SaleItem i JOIN FETCH i.sale s JOIN FETCH i.product JOIN FETCH s.vendedor LEFT JOIN FETCH s.customer "
+            + "WHERE s.status = :status AND s.vendedor.id = :vendedorId ORDER BY s.saleDate ASC"
+    )
+    List<SaleItem> findItemsBySaleStatusAndVendedor(@Param("status") SaleStatus status, @Param("vendedorId") UUID vendedorId);
+
     interface SaleItemCountProjection {
         UUID getSaleId();
 

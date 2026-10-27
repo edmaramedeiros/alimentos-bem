@@ -6,6 +6,7 @@ import com.edmara.alimentos.payment.dto.RegisterPaymentRequest;
 import com.edmara.alimentos.sale.dto.CreateSaleRequest;
 import com.edmara.alimentos.sale.dto.DailySalesPointResponse;
 import com.edmara.alimentos.sale.dto.MonthlySalesPointResponse;
+import com.edmara.alimentos.sale.dto.PickingListResponse;
 import com.edmara.alimentos.sale.dto.SaleResponse;
 import com.edmara.alimentos.sale.dto.SaleSummaryResponse;
 import com.edmara.alimentos.sale.dto.UpdateSaleRequest;
@@ -38,6 +39,14 @@ public class SaleController {
     @GetMapping
     public List<SaleSummaryResponse> list(@AuthenticationPrincipal AppUser currentUser) {
         return saleService.list(currentUser);
+    }
+
+    @GetMapping("/picking-list")
+    public PickingListResponse pickingList(
+        @RequestParam(required = false) UUID vendedorId,
+        @AuthenticationPrincipal AppUser currentUser
+    ) {
+        return saleService.pickingList(vendedorId, currentUser);
     }
 
     @GetMapping("/{id}")

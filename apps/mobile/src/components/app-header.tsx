@@ -4,11 +4,12 @@ import { Appbar, Menu } from 'react-native-paper';
 
 import { useAuthStore } from '@/store/auth-store';
 
-const NAV_ITEMS: { href: '/' | '/products' | '/customers' | '/sales' | '/commissions'; label: string }[] = [
+const NAV_ITEMS: { href: '/' | '/products' | '/customers' | '/sales' | '/picking' | '/commissions'; label: string }[] = [
   { href: '/', label: 'Início' },
   { href: '/products', label: 'Produtos' },
   { href: '/customers', label: 'Clientes' },
   { href: '/sales', label: 'Vendas' },
+  { href: '/picking', label: 'Separação' },
   { href: '/commissions', label: 'Comissões' },
 ];
 
@@ -17,6 +18,7 @@ const LIST_ROUTES = new Set([
   '/products',
   '/customers',
   '/sales',
+  '/picking',
   '/commissions',
   '/users',
   '/whatsapp',

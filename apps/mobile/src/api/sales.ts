@@ -5,6 +5,7 @@ import type {
   Payment,
   PaymentAttachment,
   PaymentMethod,
+  PickingList,
   Sale,
   SaleSummary,
 } from '@/api/types';
@@ -21,6 +22,11 @@ export function getMonthlySales(vendedorId?: string): Promise<MonthlySalesPoint[
 export function getDailySales(month: string, vendedorId?: string): Promise<DailySalesPoint[]> {
   const query = vendedorId ? `&vendedorId=${vendedorId}` : '';
   return apiRequest<DailySalesPoint[]>(`/api/sales/dashboard/daily?month=${month}${query}`);
+}
+
+export function getPickingList(vendedorId?: string): Promise<PickingList> {
+  const query = vendedorId ? `?vendedorId=${vendedorId}` : '';
+  return apiRequest<PickingList>(`/api/sales/picking-list${query}`);
 }
 
 export function getSale(id: string): Promise<Sale> {
