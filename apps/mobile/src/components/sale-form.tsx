@@ -1,7 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, HelperText, IconButton, List, Portal, Searchbar, Switch, Text, TextInput } from 'react-native-paper';
+import {
+  Button,
+  Dialog,
+  HelperText,
+  IconButton,
+  List,
+  Portal,
+  Searchbar,
+  Surface,
+  Switch,
+  Text,
+  TextInput,
+} from 'react-native-paper';
 
 import { getCashbackConfig } from '@/api/cashback';
 import { listCustomers } from '@/api/customers';
@@ -53,6 +65,7 @@ export function SaleForm({
   const [quantities, setQuantities] = useState<Record<string, number>>(initialQuantities);
   const [discountText, setDiscountText] = useState(initialDiscountAmount > 0 ? String(initialDiscountAmount) : '');
   const [generatesCashback, setGeneratesCashback] = useState(initialGeneratesCashback);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const cashbackConfigQuery = useQuery({ queryKey: ['cashback', 'config'], queryFn: getCashbackConfig });
   const cashbackAvailable = !!customer && cashbackConfigQuery.data?.percentage != null;
@@ -167,59 +180,90 @@ export function SaleForm({
       ) : visibleProducts.length === 0 ? (
         <Text style={styles.muted}>Nenhum produto ativo cadastrado.</Text>
       ) : (
-        productSections.map((section) => (
-          <View key={section.title}>
-            <Text variant="labelLarge" style={styles.categoryHeader}>
-              {section.title}
-            </Text>
-            {section.data.map((product) => {
-              const qty = quantities[product.id] ?? 0;
-              return (
-                <View key={product.id} style={styles.productRow}>
-                  <View style={styles.productInfo}>
-                    <Text>
-                      {product.name}
-                      {!product.active ? ' (inativo)' : ''}
+        productSections.map((section) => {
+          const sectionItemCount = section.data.reduce((sum, product) => sum + (quantities[product.id] ?? 0), 0);
+          const sectionTotal = section.data.reduce(
+            (sum, product) => sum + product.currentPrice * (quantities[product.id] ?? 0),
+            0
+          );
+          // Na edição, abre já as categorias que tinham itens; o resto começa fechado.
+          const expanded =
+            expandedSections[section.title] ?? section.data.some((product) => (initialQuantities[product.id] ?? 0) > 0);
+          return (
+            <List.Accordion
+              key={section.title}
+              title={section.title}
+              titleStyle={styles.categoryTitle}
+              expanded={expanded}
+              onPress={() => setExpandedSections((current) => ({ ...current, [section.title]: !expanded }))}
+              style={styles.categoryAccordion}
+              right={({ isExpanded }) => (
+                <View style={styles.categorySummary}>
+                  <Surface style={styles.summaryCard} elevation={1}>
+                    <Text variant="labelSmall" style={styles.muted}>
+                      Itens
                     </Text>
-                    <Text style={styles.muted}>
-                      {formatCurrencyBRL(product.currentPrice)} / {product.unit}
+                    <Text variant="titleSmall">{sectionItemCount}</Text>
+                  </Surface>
+                  <Surface style={styles.summaryCard} elevation={1}>
+                    <Text variant="labelSmall" style={styles.muted}>
+                      Valor
                     </Text>
-                  </View>
-
-                  <View style={styles.stepper}>
-                    <IconButton
-                      icon="minus"
-                      size={18}
-                      mode="outlined"
-                      onPress={() => setQuantity(product.id, qty - 1)}
-                      disabled={qty <= 0}
-                      accessibilityLabel={`Diminuir quantidade de ${product.name}`}
-                    />
-                    <TextInput
-                      mode="outlined"
-                      dense
-                      keyboardType="number-pad"
-                      value={String(qty)}
-                      onChangeText={(text) => setQuantity(product.id, parseQuantity(text))}
-                      style={styles.qtyInput}
-                      contentStyle={styles.qtyInputContent}
-                    />
-                    <IconButton
-                      icon="plus"
-                      size={18}
-                      mode="outlined"
-                      disabled={!product.active}
-                      onPress={() => setQuantity(product.id, qty + 1)}
-                      accessibilityLabel={`Aumentar quantidade de ${product.name}`}
-                    />
-                  </View>
-
-                  <Text style={styles.subtotal}>{qty > 0 ? formatCurrencyBRL(product.currentPrice * qty) : '—'}</Text>
+                    <Text variant="titleSmall">{formatCurrencyBRL(sectionTotal)}</Text>
+                  </Surface>
+                  <List.Icon icon={isExpanded ? 'chevron-up' : 'chevron-down'} />
                 </View>
-              );
-            })}
-          </View>
-        ))
+              )}
+            >
+              {section.data.map((product) => {
+                const qty = quantities[product.id] ?? 0;
+                return (
+                  <View key={product.id} style={styles.productRow}>
+                    <View style={styles.productInfo}>
+                      <Text>
+                        {product.name}
+                        {!product.active ? ' (inativo)' : ''}
+                      </Text>
+                      <Text style={styles.muted}>
+                        {formatCurrencyBRL(product.currentPrice)} / {product.unit}
+                      </Text>
+                    </View>
+  
+                    <View style={styles.stepper}>
+                      <IconButton
+                        icon="minus"
+                        size={18}
+                        mode="outlined"
+                        onPress={() => setQuantity(product.id, qty - 1)}
+                        disabled={qty <= 0}
+                        accessibilityLabel={`Diminuir quantidade de ${product.name}`}
+                      />
+                      <TextInput
+                        mode="outlined"
+                        dense
+                        keyboardType="number-pad"
+                        value={String(qty)}
+                        onChangeText={(text) => setQuantity(product.id, parseQuantity(text))}
+                        style={styles.qtyInput}
+                        contentStyle={styles.qtyInputContent}
+                      />
+                      <IconButton
+                        icon="plus"
+                        size={18}
+                        mode="outlined"
+                        disabled={!product.active}
+                        onPress={() => setQuantity(product.id, qty + 1)}
+                        accessibilityLabel={`Aumentar quantidade de ${product.name}`}
+                      />
+                    </View>
+  
+                    <Text style={styles.subtotal}>{qty > 0 ? formatCurrencyBRL(product.currentPrice * qty) : '—'}</Text>
+                  </View>
+                );
+              })}
+            </List.Accordion>
+          );
+        })
       )}
 
       <View style={styles.subtotalRow}>
@@ -319,7 +363,10 @@ const styles = StyleSheet.create({
   title: { marginBottom: 8 },
   sectionTitle: { marginTop: 24, marginBottom: 4 },
   pickButton: { marginTop: 8 },
-  categoryHeader: { marginTop: 16, opacity: 0.7 },
+  categoryAccordion: { paddingVertical: 4, paddingLeft: 0, borderBottomWidth: 1, borderBottomColor: '#ECCFB1' },
+  categoryTitle: { fontWeight: '600' },
+  categorySummary: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  summaryCard: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignItems: 'center', minWidth: 52 },
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
