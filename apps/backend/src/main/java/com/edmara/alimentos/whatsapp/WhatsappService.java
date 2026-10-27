@@ -12,6 +12,7 @@ import com.edmara.alimentos.whatsapp.dto.BroadcastResponse;
 import com.edmara.alimentos.whatsapp.dto.CreateBroadcastRequest;
 import com.edmara.alimentos.whatsapp.dto.SetWhatsappDailyLimitRequest;
 import com.edmara.alimentos.whatsapp.dto.WhatsappDailyLimitResponse;
+import java.text.Normalizer;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -249,16 +250,27 @@ public class WhatsappService {
     }
 
     private List<Customer> matchingCustomers(String cityFilter, String nameFilter, AppUser currentUser) {
-        String normalizedCity = StringUtils.hasText(cityFilter) ? cityFilter.trim().toLowerCase() : null;
-        String normalizedName = StringUtils.hasText(nameFilter) ? nameFilter.trim().toLowerCase() : null;
+        String normalizedCity = StringUtils.hasText(cityFilter) ? normalizeForSearch(cityFilter) : null;
+        String normalizedName = StringUtils.hasText(nameFilter) ? normalizeForSearch(nameFilter) : null;
 
         // Cada vendedora manda pelo proprio numero, entao so pode alcancar os proprios
         // clientes (mesma regra de posse usada em vendas e cadastro de clientes).
-        return customerRepository.findByOwnerVendedor_IdAndWhatsappOptInTrueAndActiveTrue(currentUser.getId()).stream()
+        // O admin alcanca todos, exceto quando filtra por municipio: ai fica so com os proprios.
+        List<Customer> candidates = currentUser.getRole() == Role.ADMIN && normalizedCity == null
+            ? customerRepository.findByWhatsappOptInTrueAndActiveTrue()
+            : customerRepository.findByOwnerVendedor_IdAndWhatsappOptInTrueAndActiveTrue(currentUser.getId());
+        return candidates.stream()
             .filter(c -> StringUtils.hasText(c.getPhone()))
-            .filter(c -> normalizedCity == null || (c.getCity() != null && c.getCity().toLowerCase().contains(normalizedCity)))
-            .filter(c -> normalizedName == null || c.getName().toLowerCase().contains(normalizedName))
+            .filter(c -> normalizedCity == null || (c.getCity() != null && normalizeForSearch(c.getCity()).contains(normalizedCity)))
+            .filter(c -> normalizedName == null || normalizeForSearch(c.getName()).contains(normalizedName))
             .toList();
+    }
+
+    // Cada vendedora digita o municipio do seu jeito ("São José" x "Sao Jose"), entao a
+    // busca ignora acentos, maiusculas e espacos repetidos.
+    private String normalizeForSearch(String value) {
+        String withoutAccents = Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return withoutAccents.trim().replaceAll("\\s+", " ").toLowerCase();
     }
 
     private byte[] decodeAttachment(String base64) {
