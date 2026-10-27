@@ -13,9 +13,14 @@ export default function NewCustomerScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Sugere o município/UF mais usado pelo próprio vendedor nos cadastros
-  // anteriores, pra não precisar selecionar de novo toda hora.
-  const defaultLocationQuery = useQuery({ queryKey: ['customers', 'default-location'], queryFn: getDefaultLocation });
+  // Pré-preenche com o município/UF padrão do usuário logado (definido no perfil).
+  // gcTime 0: sempre busca de novo ao abrir a tela, senão o formulário montaria
+  // com o valor em cache antigo (defaultValues só é lido na montagem).
+  const defaultLocationQuery = useQuery({
+    queryKey: ['customers', 'default-location'],
+    queryFn: getDefaultLocation,
+    gcTime: 0,
+  });
 
   const onSubmit = async (data: CustomerFormData) => {
     setSubmitting(true);
